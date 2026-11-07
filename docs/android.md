@@ -145,10 +145,10 @@ access with enlarged text. Portrait loading is asynchronous and scoped to that v
 missing images keep the common logo.
 
 Call and answer controls are green; decline and hangup are red. The dark palette
-comes from `zmala_terminal/common/theme.py`. A1 dark supplies the in-app mark and
-portrait fallback; the text-free A3 dark adaptive launcher icon is separate.
-Approved masters and three export sizes live in `docs/branding/`.
-Run `node build_tools/create-product-icon.cjs` to refresh runtime copies. To remove enrollment, use Android Settings > Apps > Zmala Phone > Storage >
+comes from `zmala_terminal/common/theme.py`. The shared transparent A1 mark
+appears in the app header and as the portrait fallback. The adaptive launcher
+icon uses the compact A3 dark mark. See `docs/branding/` for the artwork sources.
+To remove enrollment, use Android Settings > Apps > Zmala Phone > Storage >
 
 Clear storage (called Clear app data on some phones), then scan an App QR again.
 
