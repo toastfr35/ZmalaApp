@@ -1,0 +1,23 @@
+{
+  "baseline": "0731446f8cd6fcbafb93bbda104a2c3a6765b5fb",
+  "items": {
+    "HLR-AND-CALL-001": "ZmalaApp",
+    "HLR-AND-CALL-003": "ZmalaApp",
+    "HLR-AND-CALL-005": "ZmalaApp",
+    "HLR-AND-ENROLL-001": "ZmalaApp",
+    "HLR-AND-HISTORY-001": "ZmalaApp",
+    "HLR-AND-UI-001": "ZmalaApp",
+    "HLR-AND-UPDATE-001": "ZmalaApp",
+    "LLR-AND-CALL-002": "ZmalaApp",
+    "LLR-AND-CALL-004": "ZmalaApp",
+    "LLR-AND-CALL-006": "ZmalaApp",
+    "LLR-AND-CALL-007": "ZmalaApp",
+    "LLR-AND-ENROLL-002": "ZmalaApp",
+    "LLR-AND-HISTORY-002": "ZmalaApp",
+    "LLR-AND-HISTORY-003": "ZmalaApp",
+    "LLR-AND-UI-002": "ZmalaApp",
+    "LLR-AND-UPDATE-002": "ZmalaApp",
+    "PROD015": "Zmala"
+  },
+  "product_parent_owner": "Zmala"
+}

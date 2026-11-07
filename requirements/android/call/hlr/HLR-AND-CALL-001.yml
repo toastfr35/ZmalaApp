@@ -1,0 +1,34 @@
+active: true
+area: Audio and video calls
+derived: false
+header: Native calling and active-call continuity
+level: 1
+links:
+- PROD015: null
+normative: true
+ref: ''
+references:
+- path: tests/android/HLT/CallContinuityTest.java
+  type: file
+- path: tests/android/HLT/UiImprovementFlowTest.java
+  type: file
+- path: tests/android/HLT/EnrollmentFlowTest.java
+  type: file
+- path: tests/android/HLT/NativeCallingTest.java
+  type: file
+- path: tests/android/HLT/CallPhotoFlowTest.java
+  type: file
+reviewed: null
+scope: Experimental
+text: The Android preview shall register with the configured LAN SIP server, initiate video calls to permitted
+  contacts, allow a user to answer or decline authenticated incoming calls and end calls while the app
+  is visible. A user-started or answered call shall retain audio through Home, activity recreation and
+  screen locking under a foreground call service, pause camera sending while hidden, and restore video
+  surfaces/camera on return without starting another call. An ongoing notification shall return to or
+  end that call. Idle closed apps shall release SIP/media and rely on push. Physical interoperability
+  shall be qualified separately. During an App/Terminal or App/App call the app user shall be able to select a phone
+  photo, see it on both devices while voice continues, and stop sharing to return to video.
+verification: Use the native SDK with a disposable SIP endpoint to exercise registration, video INVITE,
+  signed incoming admission, rejection and termination. Verify physical Pi media in the documented hardware
+  procedure. Exercise photo upload, display and stop with a connected-call fixture; distinguish fixture
+  evidence from physical media qualification.

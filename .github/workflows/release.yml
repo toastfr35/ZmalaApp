@@ -1,0 +1,46 @@
+name: Release
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: release
+  cancel-in-progress: false
+jobs:
+  release:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-24.04
+    environment: release
+    timeout-minutes: 45
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+      - uses: android-actions/setup-android@v3
+        with:
+          packages: platform-tools
+      - run: sdkmanager 'platforms;android-37.0' 'build-tools;37.0.0' 'ndk;29.0.14206865'
+      - run: python -m pip install -r build_tools/release/requirements.txt
+      - name: Prepare signing and Firebase inputs
+        env:
+          ZMALA_ANDROID_KEYSTORE_BASE64: ${{ secrets.ZMALA_ANDROID_KEYSTORE_BASE64 }}
+          ZMALA_ANDROID_SIGNING_JSON: ${{ secrets.ZMALA_ANDROID_SIGNING_JSON }}
+          ZMALA_FIREBASE_CLIENT_JSON: ${{ secrets.ZMALA_FIREBASE_CLIENT_JSON }}
+        run: python build_tools/android/signing.py prepare
+      - run: python build_tools/android/release.py --signing "$RUNNER_TEMP/android-release.json"
+      - run: python build_tools/release/guides.py
+      - name: Publish APK and guides
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          python build_tools/release/component.py publish build_tools/dist/ZmalaPhone-*/{ZmalaPhone.apk,SHA256SUMS.txt,SIGNATURE.txt} build_tools/dist/guides/ZmalaPhone-*.pdf
+      - name: Remove temporary private inputs
+        if: always()
+        run: python build_tools/android/signing.py cleanup
