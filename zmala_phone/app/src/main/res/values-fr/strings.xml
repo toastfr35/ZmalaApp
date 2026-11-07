@@ -6,11 +6,11 @@
   <string name="tagline" formatted="false">Ensemble, où que vous soyez</string>
   <string name="setup_intro" formatted="false">Utilisez le QR code de configuration reçu par e-mail ou sur papier.</string>
   <string name="scan_qr" formatted="false">Scanner le QR code</string>
-  <string name="open_qr_image" formatted="false">Ouvrir une image QR</string>
-  <string name="qr_image_hint" formatted="false">Choisissez une image QR enregistrée depuis votre e-mail, ou scannez le code imprimé.</string>
+  <string name="open_qr_file" formatted="false">Ouvrir un fichier QR</string>
+  <string name="qr_file_hint" formatted="false">Choisissez le PDF de configuration ou une image du QR code.</string>
   <string name="scanner_prompt" formatted="false">Scannez votre QR code de configuration</string>
-  <string name="qr_image_error" formatted="false">Aucun QR code lisible trouvé. Choisissez une image du code ou scannez sa version imprimée.</string>
-  <string name="no_picker" formatted="false">Aucun sélecteur d’image disponible. Scannez votre QR code imprimé.</string>
+  <string name="qr_file_error" formatted="false">Aucun QR code de configuration lisible. Choisissez le PDF ou une image du code, ou scannez le code imprimé.</string>
+  <string name="no_picker" formatted="false">Aucun sélecteur de fichiers disponible. Scannez votre QR code imprimé.</string>
   <string name="connect_title" formatted="false">Se connecter à Zmala</string>
   <string name="connect" formatted="false">Se connecter</string>
   <string name="cancel" formatted="false">Annuler</string>

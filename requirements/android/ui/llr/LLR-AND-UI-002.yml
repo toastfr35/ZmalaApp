@@ -69,8 +69,8 @@ text: |
   call actions, use at least 60 dp action heights, dark terminal background and panels, green call/answer
   and red decline/end controls, and preserve readable layout within system insets.
 
-  Welcome instructions shall describe scanning a supplied setup QR code, received by email or on paper,
-  without requiring the phone user to access server administration.
+  Welcome instructions shall offer scanning a supplied setup QR code or opening a setup PDF or QR
+  image without requiring the phone user to access server administration.
 
   Contacts shall use compact horizontal rows with a rounded portrait beside the name.
 

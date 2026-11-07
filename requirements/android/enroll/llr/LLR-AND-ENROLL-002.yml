@@ -59,16 +59,19 @@ text: |
   Android Clear storage / Clear app data shall remove enrollment and terminate
   the process; reopening shall return to QR setup.
 
-  Setup shall support a local QR image through Android's document picker without
-  broad storage permission, copying the image to disk or uploading it. Image input
-  shall be bounded to 20 MiB and 64 million source pixels, with sampled decoding
-  at no more than 1800 pixels per side. Imported text shall use the camera QR
-  validation and explicit server confirmation. Cancellation shall preserve setup.
+  Setup shall support a local QR image or setup PDF through Android's document picker
+  without broad storage permission, retaining a copy or uploading the document.
+  Input shall be bounded to 20 MiB. Images shall be bounded to 64 million source
+  pixels. PDFs shall search the first ten pages for a valid App QR and skip unrelated
+  codes. Images and PDF pages shall be decoded at no more than 1800 pixels per side.
+  Imported text shall use the camera QR validation and explicit server confirmation.
+  Cancellation shall preserve setup.
 verification: |
   Test malformed/mismatched QR and configuration, strict version types and port
   boundaries. Reject malformed contacts, duplicate IDs, oversized/blank names,
   mismatched SIP addresses, non-Boolean permissions and non-string/unsafe photos.
   Accept valid boundary names, permissions and portrait formats. Exercise response
   limits and redirects without forwarding credentials. Test persistence and Android
-  app-data clearing; inspect manifest and no-backup policy. Decode QR/non-QR images,
-  reject oversized input and check stream closure and cancellation.
+  app-data clearing and inspect manifest and no-backup policy. Decode QR images and a
+  multi-page PDF containing download and App QR codes. Reject invalid and oversized
+  input and check stream closure, scratch cleanup and cancellation.

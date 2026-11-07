@@ -145,10 +145,10 @@ public class InterfaceTest {
           assertNotNull(
               PhoneFixture.text(
                   screen.getWindow().getDecorView(),
-                  "Scan the setup QR code you received by email or on paper."));
+                  "Use the setup QR code you received by email or on paper."));
           assertTrue(
               button.getMinimumHeight() >= 60 * screen.getResources().getDisplayMetrics().density);
-          assertNotNull(PhoneFixture.text(screen.getWindow().getDecorView(), "Open QR image"));
+          assertNotNull(PhoneFixture.text(screen.getWindow().getDecorView(), "Open QR file"));
         });
   }
 }

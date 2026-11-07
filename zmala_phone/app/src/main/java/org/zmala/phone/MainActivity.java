@@ -232,11 +232,11 @@ public final class MainActivity extends Activity implements CallSession.Observer
       int ticket = setup.ticket();
       network.execute(() -> {
         try {
-          String text = QrImage.read(getContentResolver().openInputStream(uri));
+          String text = QrImage.read(getContentResolver().openInputStream(uri), getCacheDir());
           main.post(() -> { if (visible && setup.current(ticket)) confirmEnrollment(text); });
         } catch (Exception error) {
           main.post(() -> { if (visible && setup.current(ticket))
-            showError(getString(R.string.qr_image_error)); });
+            showError(getString(R.string.qr_file_error)); });
         }
       });
       return;
@@ -247,8 +247,9 @@ public final class MainActivity extends Activity implements CallSession.Observer
   }
 
   // @llr LLR-AND-ENROLL-002
-  private void openQrImage() {
-    Intent pick = new Intent(Intent.ACTION_OPEN_DOCUMENT).setType("image/*")
+  private void openQrFile() {
+    Intent pick = new Intent(Intent.ACTION_OPEN_DOCUMENT).setType("*/*")
+        .putExtra(Intent.EXTRA_MIME_TYPES, new String[] {"image/*", "application/pdf"})
         .addCategory(Intent.CATEGORY_OPENABLE).addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
     try { startActivityForResult(pick, 9); }
     catch (android.content.ActivityNotFoundException error) { showError(getString(R.string.no_picker)); }
@@ -453,8 +454,8 @@ public final class MainActivity extends Activity implements CallSession.Observer
       page.addView(label(getString(R.string.tagline), 26, FG));
       page.addView(label(getString(R.string.setup_intro), 18, MUTED));
       page.addView(button(getString(R.string.scan_qr), GREEN, this::scan));
-      page.addView(button(getString(R.string.open_qr_image), PANEL, this::openQrImage));
-      page.addView(label(getString(R.string.qr_image_hint), 16, MUTED));
+      page.addView(button(getString(R.string.open_qr_file), PANEL, this::openQrFile));
+      page.addView(label(getString(R.string.qr_file_hint), 16, MUTED));
     } else if (config == null) page.addView(button(getString(R.string.retry_connection), GREEN, () -> refresh(true)));
     else {
       ScrollView scroll = new ScrollView(this);

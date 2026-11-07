@@ -1,8 +1,8 @@
 // @test A-HLT-010
 // @requirements HLR-AND-ENROLL-001, HLR-AND-UI-001, HLR-AND-CALL-001, HLR-AND-CALL-005, HLR-AND-UPDATE-001
 // @environment native-display
-// @plan On a disposable Android emulator profile, import a generated QR image through the activity
-// result path, inspect server confirmation and cancel without enrollment. Start a real native call
+// @plan On a disposable Android emulator profile, import a QR image and a setup PDF with both QR
+// codes. Inspect server confirmation and cancel without enrollment. Start a real native call
 // against local HTTP/SIP fixtures; inject a configuration 503 and then 403.
 // With notification permission unavailable, open the footer action and intercept the Android settings intent.
 // Inject a newer verified-metadata candidate without a network download; inspect the quiet footer,
@@ -16,6 +16,7 @@ package org.zmala.phone;
 import static org.junit.Assert.*;
 import android.Manifest;
 import android.app.Activity;
+import android.app.Instrumentation;
 import android.content.Intent;
 import android.graphics.Bitmap;
 import android.net.Uri;
@@ -48,13 +49,41 @@ public class UiImprovementFlowTest {
     try (OutputStream out = new FileOutputStream(picture)) { bitmap.compress(Bitmap.CompressFormat.PNG, 100, out); }
     bitmap.recycle();
     MainActivity screen = activity.launchActivity(null);
-    assertTrue(PhoneFixture.hasText(screen, "Open QR image"));
+    assertTrue(PhoneFixture.hasText(screen, "Open QR file"));
     PhoneFixture.INSTRUMENTATION.runOnMainSync(() -> screen.onActivityResult(9, Activity.RESULT_OK, new Intent().setData(Uri.fromFile(picture))));
     PhoneFixture.waitFor(() -> PhoneFixture.INSTRUMENTATION.getUiAutomation().getRootInActiveWindow() != null);
     PhoneFixture.dialog("Cancel");
     assertFalse(enrollment.exists());
     assertTrue(PhoneFixture.hasText(screen, "Scan setup QR"));
     Files.deleteIfExists(picture.toPath());
+  }
+  @Test public void setupPdfOpensAccountConfirmationAndCancelKeepsSetupEmpty() throws Exception {
+    File pdf = File.createTempFile("setup-fixture-", ".pdf",
+        PhoneFixture.INSTRUMENTATION.getTargetContext().getCacheDir());
+    Intent[] picker = {null};
+    var monitor = new Instrumentation.ActivityMonitor() {
+      @Override public Instrumentation.ActivityResult onStartActivity(Intent intent) {
+        if (!Intent.ACTION_OPEN_DOCUMENT.equals(intent.getAction())) return null;
+        picker[0] = intent;
+        return new Instrumentation.ActivityResult(Activity.RESULT_OK, new Intent().setData(Uri.fromFile(pdf)));
+      }
+    };
+    PhoneFixture.INSTRUMENTATION.addMonitor(monitor);
+    try {
+      Files.write(pdf.toPath(), PhoneFixture.setupPdf(PhoneFixture.qr(12345, "app"), false));
+      MainActivity screen = activity.launchActivity(null);
+      PhoneFixture.click(screen, "Open QR file");
+      assertNotNull(picker[0]);
+      assertTrue(picker[0].hasCategory(Intent.CATEGORY_OPENABLE));
+      assertArrayEquals(new String[] {"image/*", "application/pdf"},
+          picker[0].getStringArrayExtra(Intent.EXTRA_MIME_TYPES));
+      PhoneFixture.dialog("Cancel");
+      assertFalse(enrollment.exists());
+      assertTrue(PhoneFixture.hasText(screen, "Scan setup QR"));
+    } finally {
+      PhoneFixture.INSTRUMENTATION.removeMonitor(monitor);
+      Files.deleteIfExists(pdf.toPath());
+    }
   }
   @Test public void pollingOutagePreservesAnAnsweredCallButRevocationStopsIt() throws Exception {
     try (PhoneFixture.Sip sip = new PhoneFixture.Sip(); PhoneFixture.Http http = new PhoneFixture.Http(PhoneFixture.config(sip.port()))) {
