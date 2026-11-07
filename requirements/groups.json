@@ -1,0 +1,9 @@
+{
+  "AND": {
+    "CALL": "Audio and video calls",
+    "ENROLL": "QR enrollment and configuration",
+    "HISTORY": "Missed calls and callback requests",
+    "UI": "Portrait interface and controls",
+    "UPDATE": "Application updates"
+  }
+}
