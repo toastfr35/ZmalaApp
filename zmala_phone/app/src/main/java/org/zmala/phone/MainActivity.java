@@ -32,6 +32,7 @@ import org.linphone.core.Call;
 
 // @llr LLR-AND-UI-002
 public final class MainActivity extends Activity implements CallSession.Observer {
+  private static final String FORGET_SETUP = "org.zmala.phone.action.FORGET_SETUP";
   static final int BG = Color.rgb(13, 18, 28),
       FG = Color.rgb(237, 241, 251),
       MUTED = Color.rgb(144, 160, 185),
@@ -100,7 +101,9 @@ public final class MainActivity extends Activity implements CallSession.Observer
     message = getString(R.string.welcome);
     if (android.os.Build.VERSION.SDK_INT >= 33)
       getOnBackInvokedDispatcher().registerOnBackInvokedCallback(android.window.OnBackInvokedDispatcher.PRIORITY_DEFAULT, this::navigateBack);
-    if (!handleForgetSetupShortcut(getIntent())) {
+    if (FORGET_SETUP.equals(getIntent().getAction())) {
+      if (state == null) confirmForgetSetup();
+    } else {
       handlePushIntent(getIntent());
       handleCallbackIntent(getIntent());
     }
@@ -285,9 +288,7 @@ public final class MainActivity extends Activity implements CallSession.Observer
   }
 
   // @llr LLR-AND-ENROLL-002
-  private boolean handleForgetSetupShortcut(Intent intent) {
-    if (!"org.zmala.phone.action.FORGET_SETUP".equals(intent.getAction())) return false;
-    intent.setAction(Intent.ACTION_MAIN);
+  private void confirmForgetSetup() {
     if ((enrollment != null || setup.enrolled()) && (forgetDialog == null || !forgetDialog.isShowing())) {
       forgetDialog = new AlertDialog.Builder(this)
           .setTitle(R.string.forget_setup_title)
@@ -296,7 +297,6 @@ public final class MainActivity extends Activity implements CallSession.Observer
           .setPositiveButton(R.string.forget_setup, (dialog, which) -> forgetSetup())
           .show();
     }
-    return true;
   }
 
   private void forgetSetup() {
@@ -932,8 +932,11 @@ public final class MainActivity extends Activity implements CallSession.Observer
   @Override
   protected void onNewIntent(Intent intent) {
     super.onNewIntent(intent);
+    if (FORGET_SETUP.equals(intent.getAction())) {
+      confirmForgetSetup();
+      return;
+    }
     setIntent(intent);
-    if (handleForgetSetupShortcut(intent)) return;
     handlePushIntent(intent);
     handleCallbackIntent(intent);
     if (visible && enrollment != null && engine.call == null) refresh(true);
