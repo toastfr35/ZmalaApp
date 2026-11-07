@@ -18,6 +18,10 @@ references:
   type: file
 - path: zmala_phone/app/src/main/AndroidManifest.xml
   type: file
+- path: zmala_phone/app/src/main/res/xml/shortcuts.xml
+  type: file
+- path: zmala_phone/app/src/main/res/drawable/ic_forget_setup.xml
+  type: file
 - path: zmala_phone/app/src/main/java/org/zmala/phone/Enrollment.java
   type: file
 - path: zmala_phone/app/src/main/java/org/zmala/phone/QrImage.java
@@ -59,6 +63,11 @@ text: |
   Android Clear storage / Clear app data shall remove enrollment and terminate
   the process; reopening shall return to QR setup.
 
+  The Android launcher shall offer a Forget setup shortcut. It shall require
+  confirmation before deleting the saved enrollment, stopping the call session,
+  discarding old account state and returning to QR setup. Cancelling shall preserve
+  enrollment. Forgetting setup shall preserve general app preferences.
+
   Setup shall support a local QR image or setup PDF through Android's document picker
   without broad storage permission, retaining a copy or uploading the document.
   Input shall be bounded to 20 MiB. Images shall be bounded to 64 million source
@@ -72,6 +81,8 @@ verification: |
   mismatched SIP addresses, non-Boolean permissions and non-string/unsafe photos.
   Accept valid boundary names, permissions and portrait formats. Exercise response
   limits and redirects without forwarding credentials. Test persistence and Android
-  app-data clearing and inspect manifest and no-backup policy. Decode QR images and a
-  multi-page PDF containing download and App QR codes. Reject invalid and oversized
-  input and check stream closure, scratch cleanup and cancellation.
+  app-data clearing and inspect manifest and no-backup policy. Launch Forget setup,
+  cancel once, then confirm and verify enrollment is removed while app preferences
+  persist. Decode QR images and a multi-page PDF containing download and App QR
+  codes. Reject invalid and oversized input and check stream closure, scratch
+  cleanup and cancellation.

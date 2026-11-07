@@ -11,6 +11,10 @@
   <string name="scanner_prompt" formatted="false">Scan your setup QR code</string>
   <string name="qr_file_error" formatted="false">No readable setup QR code was found. Choose the setup PDF or QR image, or scan the printed code.</string>
   <string name="no_picker" formatted="false">No file picker is available. Scan your printed setup QR instead.</string>
+  <string name="forget_setup">Forget setup</string>
+  <string name="forget_setup_title">Forget this setup?</string>
+  <string name="forget_setup_message">This removes the account from this phone and ends any current call. You’ll need the setup QR code to connect again.</string>
+  <string name="forget_setup_error">Could not remove the saved setup. Try again.</string>
   <string name="connect_title" formatted="false">Connect to Zmala</string>
   <string name="connect" formatted="false">Connect</string>
   <string name="cancel" formatted="false">Cancel</string>

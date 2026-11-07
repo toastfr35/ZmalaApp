@@ -46,6 +46,10 @@ final class CallbackAlerts {
   static synchronized void revoked(Context context, Enrollment enrollment) {
     Enrollment current = PushAlerts.enrollment(context);
     if (current == null || !identity(current).equals(identity(enrollment))) return;
+    forget(context);
+  }
+
+  static synchronized void forget(Context context) {
     revision++;
     NotificationManager manager = context.getSystemService(NotificationManager.class);
     for (android.service.notification.StatusBarNotification item : manager.getActiveNotifications())

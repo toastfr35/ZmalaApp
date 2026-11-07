@@ -46,6 +46,10 @@ address. The app reads the selected document locally and looks for the App setup
 QR in the first ten PDF pages. It accepts files up to 20 MiB and skips the APK
 download QR. Cancelling the picker or the confirmation leaves setup unchanged.
 
+To remove the saved account, touch and hold the Zmala Phone launcher icon and
+choose **Forget setup**. Confirm to end any current call and return to QR setup.
+The shortcut clears the account from this phone and keeps general app preferences.
+
 LAN mode needs a mutually reachable trusted network. Secure relay mode supports
 separate networks through the administrator's public Zmala server.
 

@@ -169,7 +169,14 @@ public final class PushAlerts {
     closed(context, id, true);
   }
 
-  static void receive(Context context, Map<String, String> data) {
+  static synchronized void forget(Context context) {
+    NotificationManager manager = context.getSystemService(NotificationManager.class);
+    for (android.service.notification.StatusBarNotification item : manager.getActiveNotifications())
+      if (CHANNEL.equals(item.getNotification().getChannelId())) manager.cancel(item.getTag(), item.getId());
+    context.getSharedPreferences("push", 0).edit().remove("names").remove("closed").apply();
+  }
+
+  static synchronized void receive(Context context, Map<String, String> data) {
     // @llr LLR-AND-HISTORY-003
     if ("callback".equals(data.get("event"))) { CallbackAlerts.receive(context,data); return; }
     Enrollment enrollment = enrollment(context);

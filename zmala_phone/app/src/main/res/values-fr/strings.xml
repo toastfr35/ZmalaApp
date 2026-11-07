@@ -11,6 +11,10 @@
   <string name="scanner_prompt" formatted="false">Scannez votre QR code de configuration</string>
   <string name="qr_file_error" formatted="false">Aucun QR code de configuration lisible. Choisissez le PDF ou une image du code, ou scannez le code imprimé.</string>
   <string name="no_picker" formatted="false">Aucun sélecteur de fichiers disponible. Scannez votre QR code imprimé.</string>
+  <string name="forget_setup">Oublier la configuration</string>
+  <string name="forget_setup_title">Oublier cette configuration ?</string>
+  <string name="forget_setup_message">Le compte sera retiré de ce téléphone et tout appel en cours sera terminé. Vous aurez besoin du QR code de configuration pour vous reconnecter.</string>
+  <string name="forget_setup_error">Impossible de supprimer la configuration enregistrée. Réessayez.</string>
   <string name="connect_title" formatted="false">Se connecter à Zmala</string>
   <string name="connect" formatted="false">Se connecter</string>
   <string name="cancel" formatted="false">Annuler</string>

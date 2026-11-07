@@ -20,3 +20,4 @@ verification: Open the real scanner from the setup action, verify its active cam
   without enrollment. Open a setup PDF from the file action, confirm that the App QR opens server
   confirmation and cancel without saving. Use an Android activity and disposable HTTP fixture to enroll,
   display contacts and call. Reject a Terminal QR. Optical decoding remains a separate physical check.
+  Cancel and confirm Forget setup from the launcher shortcut, then verify QR setup after confirmation.

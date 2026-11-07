@@ -372,6 +372,9 @@ public final class CallEngine {
     core = null;
     call = null;
     preview = null;
+    config = null;
+    transportConfig = null;
+    appliedSettings = null;
     // @llr LLR-AND-UPDATE-002
     UpdateGate.INSTANCE.endCall();
     registered = false;
