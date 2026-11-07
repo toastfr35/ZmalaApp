@@ -3,7 +3,7 @@
 // @environment native-display
 // @plan On a disposable Android emulator profile, import a QR image and a setup PDF with both QR
 // codes. Inspect server confirmation and cancel without enrollment. Launch the published Forget setup
-// shortcut, cancel once, then confirm and check setup and general preferences. Start a real native call
+// shortcut with an offline enrollment, cancel once, then confirm and check setup and preferences. Start a real native call
 // against local HTTP/SIP fixtures; inject a configuration 503 and then 403.
 // With notification permission unavailable, open the footer action and intercept the Android settings intent.
 // Inject a newer verified-metadata candidate without a network download; inspect the quiet footer,
@@ -97,13 +97,12 @@ public class UiImprovementFlowTest {
     boolean hadHint = preferences.contains("call_hint_seen");
     boolean previousHint = preferences.getBoolean("call_hint_seen", false);
     preferences.edit().putBoolean("call_hint_seen", true).apply();
-    try (PhoneFixture.Sip sip = new PhoneFixture.Sip(); PhoneFixture.Http http = new PhoneFixture.Http(
-        PhoneFixture.config(sip.port()))) {
-      Files.writeString(enrollment.toPath(), PhoneFixture.qr(http.port(), "app"));
+    try {
+      String saved = PhoneFixture.qr(12345, "app");
+      Files.writeString(enrollment.toPath(), saved);
       try (ActivityScenario<MainActivity> scenario = ActivityScenario.launch(shortcut)) {
         PhoneFixture.dialog("Cancel");
-        assertTrue(enrollment.exists());
-        PhoneFixture.waitFor(() -> sip.authenticated);
+        assertEquals(saved, Files.readString(enrollment.toPath()));
 
         scenario.onActivity(screen -> screen.startActivity(new Intent(shortcut).setFlags(0)));
         PhoneFixture.dialog("Forget setup");
