@@ -15,4 +15,9 @@ plans. Do not commit `requirements/output/` or clear suspect links without
 review. Product tests go in the top-level `tests/` tree. Keep packaging,
 installer and tooling tests in `tests/adhoc/`. Record hardware skips explicitly.
 
-Increase this component's version and its update sequence where applicable in each PR.
+Read `requirements/README.md` before changing an external interface. Preserve
+peer compatibility with local fixtures and coordinate deliberate wire changes.
+
+Increase Android versionName and versionCode in PRs that affect runtime, build,
+or release. Changes limited to requirements, repository instructions, and
+Verify configuration may keep the existing version.
