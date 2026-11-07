@@ -40,11 +40,11 @@ access on Android 17), scan the code and confirm the displayed server address.
 
 An HTTP enrollment explicitly warns that LAN setup and calls are unencrypted.
 
-For a QR received by email, display it on another screen to scan it with the phone.
-Alternatively save its picture and choose **Open QR image**. Android's document picker
-grants access only to that selected image. `QrImage` bounds bytes/source dimensions,
-samples the bitmap and decodes locally; both import and scanning use the same
-enrollment confirmation. A cancelled picker does not change the existing setup.
+To set up directly from an email attachment, save the setup PDF or a QR image on
+the phone and tap **Open QR file**. Choose the file and confirm the displayed server
+address. The app reads the selected document locally and looks for the App setup
+QR in the first ten PDF pages. It accepts files up to 20 MiB and skips the APK
+download QR. Cancelling the picker or the confirmation leaves setup unchanged.
 
 LAN mode needs a mutually reachable trusted network. Secure relay mode supports
 separate networks through the administrator's public Zmala server.

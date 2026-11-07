@@ -5,10 +5,15 @@ import static org.junit.Assert.*;
 import android.app.Activity;
 import android.app.Instrumentation;
 import android.content.Intent;
+import android.graphics.Canvas;
+import android.graphics.Paint;
+import android.graphics.pdf.PdfDocument;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.TextView;
 import androidx.test.platform.app.InstrumentationRegistry;
+import com.google.zxing.BarcodeFormat;
+import com.google.zxing.qrcode.QRCodeWriter;
 import java.io.*;
 import java.net.*;
 import java.nio.charset.StandardCharsets;
@@ -63,6 +68,30 @@ public final class PhoneFixture {
         .put("device_id", ID)
         .put("device_token", TOKEN)
         .toString();
+  }
+
+  static byte[] setupPdf(String accountQr, boolean coverPage) throws Exception {
+    PdfDocument pdf = new PdfDocument();
+    try {
+      if (coverPage) pdf.finishPage(pdf.startPage(new PdfDocument.PageInfo.Builder(595, 842, 1).create()));
+      var page = pdf.startPage(new PdfDocument.PageInfo.Builder(595, 842, coverPage ? 2 : 1).create());
+      drawQr(page.getCanvas(), "https://example.org/ZmalaPhone.apk", 40, 305, 158);
+      if (accountQr != null) drawQr(page.getCanvas(), accountQr, 40, 535, 205);
+      pdf.finishPage(page);
+      ByteArrayOutputStream out = new ByteArrayOutputStream();
+      pdf.writeTo(out);
+      return out.toByteArray();
+    } finally { pdf.close(); }
+  }
+
+  private static void drawQr(Canvas canvas, String text, int x, int y, int size) throws Exception {
+    var matrix = new QRCodeWriter().encode(text, BarcodeFormat.QR_CODE, 0, 0);
+    float unit = (float) size / matrix.getWidth();
+    Paint ink = new Paint();
+    for (int row = 0; row < matrix.getHeight(); row++)
+      for (int col = 0; col < matrix.getWidth(); col++)
+        if (matrix.get(col, row)) canvas.drawRect(x + col * unit, y + row * unit,
+            x + (col + 1) * unit, y + (row + 1) * unit, ink);
   }
 
   public static void waitFor(BooleanSupplier condition) throws Exception {

@@ -4,13 +4,13 @@
   <string name="welcome" formatted="false">Welcome</string>
   <string name="ready" formatted="false">Ready to call</string>
   <string name="tagline" formatted="false">Together, wherever you are</string>
-  <string name="setup_intro" formatted="false">Scan the setup QR code you received by email or on paper.</string>
+  <string name="setup_intro" formatted="false">Use the setup QR code you received by email or on paper.</string>
   <string name="scan_qr" formatted="false">Scan setup QR</string>
-  <string name="open_qr_image" formatted="false">Open QR image</string>
-  <string name="qr_image_hint" formatted="false">Choose a QR picture saved from your email, or scan a printed code.</string>
+  <string name="open_qr_file" formatted="false">Open QR file</string>
+  <string name="qr_file_hint" formatted="false">Choose the setup PDF or an image of the QR code.</string>
   <string name="scanner_prompt" formatted="false">Scan your setup QR code</string>
-  <string name="qr_image_error" formatted="false">No readable setup QR code was found. Choose the QR picture, or scan the printed code.</string>
-  <string name="no_picker" formatted="false">No image picker is available. Scan your printed setup QR instead.</string>
+  <string name="qr_file_error" formatted="false">No readable setup QR code was found. Choose the setup PDF or QR image, or scan the printed code.</string>
+  <string name="no_picker" formatted="false">No file picker is available. Scan your printed setup QR instead.</string>
   <string name="connect_title" formatted="false">Connect to Zmala</string>
   <string name="connect" formatted="false">Connect</string>
   <string name="cancel" formatted="false">Cancel</string>

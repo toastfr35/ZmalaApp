@@ -17,5 +17,6 @@ scope: Experimental
 text: ZmalaPhone shall enroll from an App QR code and obtain its identity and permitted contacts from
   the associated server without manual SIP configuration.
 verification: Open the real scanner from the setup action, verify its active camera preview and cancel
-  without enrollment. Use an Android activity and disposable HTTP fixture to enroll, display contacts
-  and call; reject a Terminal QR. Optical decoding remains a separate physical check.
+  without enrollment. Open a setup PDF from the file action, confirm that the App QR opens server
+  confirmation and cancel without saving. Use an Android activity and disposable HTTP fixture to enroll,
+  display contacts and call. Reject a Terminal QR. Optical decoding remains a separate physical check.
