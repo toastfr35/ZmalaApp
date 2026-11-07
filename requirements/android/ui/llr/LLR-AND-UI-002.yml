@@ -76,7 +76,9 @@ text: |
 
   Portrait downloads shall use a bounded background queue separate from configuration and callback
   requests. Decoded static portraits shall be reused within a bounded memory cache, isolated by
-  enrollment and cleared when the screen owner is destroyed. Replacing or leaving the contact view shall discard obsolete queued work and results.
+  enrollment and cleared when the screen owner is destroyed. Portraits in memory shall be applied
+  immediately during view binding, with background work queued only for cache misses. Replacing or
+  leaving the contact view shall discard obsolete queued work and results.
 
   Name buttons shall include a smaller status label: Available on green for recently confirmed
   activity, Try calling on blue for unconfirmed push eligibility, and Offline on red
@@ -145,7 +147,8 @@ verification: Exercise labels and actions on an Android display, check minimum t
   Render the pulse at several animation phases and verify a full circular perimeter with clear margins.
 
   Block a portrait download while replacing the contact view; assert obsolete work/results are
-  discarded, current work completes, overload remains bounded and closing invalidates outstanding tickets.
+  discarded, cached portraits bind immediately, current work completes, overload remains bounded and
+  closing invalidates outstanding tickets.
 
   Test answered-but-no-frame progress, decoder re-arming, stale callbacks and cleanup.
 
