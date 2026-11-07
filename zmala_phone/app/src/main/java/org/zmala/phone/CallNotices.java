@@ -20,5 +20,8 @@ final class CallNotices {
   static void finish(Context context, String id, boolean missed) { change(context, b -> b.finish(id, missed)); }
   static void answered(Context context, String id, String peer) { change(context, b -> { b.finish(id, false); b.clear(peer); }); }
   static void clear(Context context, String peer) { change(context, b -> b.clear(peer)); }
+  static synchronized void forget(Context context) {
+    context.getSharedPreferences("call_notices", 0).edit().clear().apply();
+  }
   static NoticeBook snapshot(Context context, JSONArray contacts) { return change(context, b -> b.retain(contacts)); }
 }

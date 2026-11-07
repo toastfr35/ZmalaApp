@@ -32,6 +32,7 @@ import org.linphone.core.Call;
 
 // @llr LLR-AND-UI-002
 public final class MainActivity extends Activity implements CallSession.Observer {
+  private static final String FORGET_SETUP = "org.zmala.phone.action.FORGET_SETUP";
   static final int BG = Color.rgb(13, 18, 28),
       FG = Color.rgb(237, 241, 251),
       MUTED = Color.rgb(144, 160, 185),
@@ -85,6 +86,7 @@ public final class MainActivity extends Activity implements CallSession.Observer
   private boolean callbackSending;
   private String displayedNotices = "";
   private AlertDialog contactDialog;
+  private AlertDialog forgetDialog;
   private final Runnable poll = () -> refresh(false);
 
   @Override
@@ -99,8 +101,12 @@ public final class MainActivity extends Activity implements CallSession.Observer
     message = getString(R.string.welcome);
     if (android.os.Build.VERSION.SDK_INT >= 33)
       getOnBackInvokedDispatcher().registerOnBackInvokedCallback(android.window.OnBackInvokedDispatcher.PRIORITY_DEFAULT, this::navigateBack);
-    handlePushIntent(getIntent());
-    handleCallbackIntent(getIntent());
+    if (FORGET_SETUP.equals(getIntent().getAction())) {
+      if (state == null) confirmForgetSetup();
+    } else {
+      handlePushIntent(getIntent());
+      handleCallbackIntent(getIntent());
+    }
     directory();
   }
 
@@ -279,6 +285,38 @@ public final class MainActivity extends Activity implements CallSession.Observer
     } catch (Exception e) {
       showError(getString(R.string.setup_invalid));
     }
+  }
+
+  // @llr LLR-AND-ENROLL-002
+  private void confirmForgetSetup() {
+    if ((enrollment != null || setup.enrolled()) && (forgetDialog == null || !forgetDialog.isShowing())) {
+      forgetDialog = new AlertDialog.Builder(this)
+          .setTitle(R.string.forget_setup_title)
+          .setMessage(R.string.forget_setup_message)
+          .setNegativeButton(R.string.cancel, null)
+          .setPositiveButton(R.string.forget_setup, (dialog, which) -> forgetSetup())
+          .show();
+    }
+  }
+
+  private void forgetSetup() {
+    try {
+      setup.forget();
+    } catch (java.io.IOException error) {
+      showError(getString(R.string.forget_setup_error));
+      return;
+    }
+    enrollment = null;
+    config = null;
+    selectedContact = null;
+    callbackContact = null;
+    photoPickerCall = null;
+    session.stop();
+    engine.takeUnansweredPeer();
+    PushAlerts.forget(this);
+    CallbackAlerts.forget(this);
+    CallNotices.forget(this);
+    recreate();
   }
 
   // @llr LLR-AND-CALL-006
@@ -894,6 +932,10 @@ public final class MainActivity extends Activity implements CallSession.Observer
   @Override
   protected void onNewIntent(Intent intent) {
     super.onNewIntent(intent);
+    if (FORGET_SETUP.equals(intent.getAction())) {
+      confirmForgetSetup();
+      return;
+    }
     setIntent(intent);
     handlePushIntent(intent);
     handleCallbackIntent(intent);

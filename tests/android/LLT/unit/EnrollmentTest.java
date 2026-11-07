@@ -6,7 +6,7 @@
 // Reject coerced versions, invalid ports, malformed contact names/URIs/permissions/photos and duplicates.
 // Serve redirects from a local HTTP fixture and verify no credentials reach the redirect target.
 // Download a GIF larger than the static cap, reject the same oversized JPEG and invalid photo paths.
-// Test setup storage round trips, invalidation of old work and SDK-specific denied permission policy.
+// Test setup storage round trips and removal, invalidation of old work and SDK-specific denied permission policy.
 // @pass All parser, identity, transport and redirect boundary assertions pass.
 package org.zmala.phone;
 
@@ -28,6 +28,12 @@ public class EnrollmentTest {
       assertFalse(setup.current(ticket)); assertFalse(setup.fetching());
       Enrollment enrollment = new Enrollment(qr().toString()); setup.remember(enrollment);
       assertEquals(enrollment.serialized(), setup.load().serialized());
+      int enrolledTicket = setup.ticket();
+      setup.fetching(true);
+      setup.forget();
+      assertFalse(setup.enrolled());
+      assertFalse(setup.current(enrolledTicket));
+      assertFalse(setup.fetching());
       assertTrue(SetupCoordinator.granted(36, permission -> !permission.endsWith("ACCESS_LOCAL_NETWORK")));
       assertFalse(SetupCoordinator.granted(37, permission -> !permission.endsWith("ACCESS_LOCAL_NETWORK")));
       assertFalse(SetupCoordinator.granted(36, permission -> !permission.endsWith("CAMERA")));

@@ -1,6 +1,7 @@
 package org.zmala.phone;
 
 import java.io.File;
+import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.util.function.Predicate;
@@ -23,6 +24,10 @@ final class SetupCoordinator {
   }
   void remember(Enrollment enrollment) throws Exception {
     Files.write(file.toPath(), enrollment.serialized().getBytes(StandardCharsets.UTF_8));
+  }
+  void forget() throws IOException {
+    Files.deleteIfExists(file.toPath());
+    invalidate();
   }
   org.json.JSONObject configuration(Enrollment enrollment) throws Exception {
     return ServerApi.configuration(enrollment);

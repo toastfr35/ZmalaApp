@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- @llr LLR-AND-ENROLL-002 -->
+<shortcuts xmlns:android="http://schemas.android.com/apk/res/android">
+  <shortcut android:shortcutId="forget_setup" android:icon="@drawable/ic_forget_setup"
+      android:shortcutShortLabel="@string/forget_setup">
+    <intent android:action="org.zmala.phone.action.FORGET_SETUP"
+        android:targetPackage="org.zmala.phone" android:targetClass="org.zmala.phone.MainActivity" />
+  </shortcut>
+</shortcuts>
