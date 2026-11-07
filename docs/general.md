@@ -1,7 +1,6 @@
 # ZmalaApp engineering
 
-Read the [technical guide](android.md) and [migration inventory](migration/path-map.csv).
-The source commit and copied inputs are recorded in [provenance.json](migration/provenance.json).
+Read the [Android technical guide](android.md).
 
 ## Requirements and tests
 
