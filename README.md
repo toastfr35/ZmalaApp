@@ -4,7 +4,6 @@ This repository contains the Zmala Android app.
 
 - [Technical guide](docs/android.md)
 - [Development and requirements](docs/general.md)
-- [Migration provenance](docs/migration/provenance.json)
 - [Downloads](https://github.com/toastfr35/ZmalaApp/releases)
 
 ## Related repositories
