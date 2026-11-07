@@ -29,8 +29,14 @@ final class PortraitLoader implements AutoCloseable {
     if (enrollment == null || path.isEmpty() || !queue.current(ticket)) return;
     String owner = enrollment.serialized();
     if (!owner.equals(identity)) { identity = owner; cache.evictAll(); }
+    Bitmap cached = cache.get(path);
+    if (cached != null) {
+      view.setImageBitmap(cached);
+      return;
+    }
     queue.execute(ticket, () -> {
       try {
+        // A previous queued request for this path may have filled the cache.
         Bitmap bitmap = cache.get(path);
         if (bitmap == null) {
           byte[] bytes = fetch.read(enrollment, path);
