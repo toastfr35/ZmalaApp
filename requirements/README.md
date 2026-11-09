@@ -4,6 +4,10 @@ The Doorstop baseline under `android/` covers the Android runtime.
 `ownership.json` identifies the owner of each requirement. Read the relevant
 HLR, LLR and verification plan before changing behavior.
 
+The [2026-11-09 implementation review](reviews/2026-11-09.md) records the reviewed
+baseline, corrected drift and outstanding verification/implementation gaps. It is
+a review record, not an additional normative specification or a hardware qualification.
+
 ## External interfaces
 
 - [App and Server interface](interfaces/app-server.md) covers enrollment,

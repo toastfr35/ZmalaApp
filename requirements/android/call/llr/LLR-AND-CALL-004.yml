@@ -33,8 +33,10 @@ references:
 reviewed: null
 scope: Experimental
 text: The app shall register its Firebase token at the enrolled origin using its App bearer identity,
-  renew it while used, and remove the destination when notifications are disabled and the app next opens.
-  With notification permission, an FCM ring message shall show a native incoming-call alert only for a valid
+  renew it while used, and remove the destination on the next registration attempt when app notifications
+  are disabled or neither the incoming-call nor callback channel permits alerts. Registration shall remain
+  available while either channel permits alerts, as required by LLR-AND-HISTORY-003.
+  With app notification permission and the incoming-call channel enabled, an FCM ring message shall show a native incoming-call alert only for a valid
   enrollment HMAC, device ID and deadline no more than 90 seconds away. The alert shall use locally cached
   caller names, Answer and Decline actions, and automatic timeout; duplicates and ring messages received
   after cancellation shall be suppressed for two minutes. Answer shall reconnect without starting media
@@ -52,3 +54,5 @@ verification: Verify signed and malformed payload boundaries in JVM tests, nativ
   on Android and bearer POSTs. Exercise notification answer through fresh registration and a matching
   authenticated SIP call in HLT; qualify FCM/locked-screen/Doze separately.
   Verify deferred acceptance and rejection after cancellation, visibility loss or expiry in JVM tests.
+  Exercise app-wide notification denial, each channel enabled alone, both enabled and both disabled;
+  assert token retention/removal independently of incoming-call notification display.

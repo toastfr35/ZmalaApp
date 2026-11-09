@@ -134,6 +134,8 @@ text: |
   from earlier calls shall not hide it. Its full label shall fit in portrait and landscape. Ringing animation shall give way to a connecting spinner.
   Its full circular perimeter shall remain visible throughout the pulse in both orientations.
 verification: Exercise labels and actions on an Android display, check minimum touch size and absence of in-app reset actions,
+  measure each clickable action itself (including notification footer, photo-sharing and dialog actions)
+  at normal and enlarged font sizes against the 60 dp minimum,
   check that setup describes using a supplied QR without administrator access, and visually inspect
   screenshots for clipping.
   Verify all three row colours and status labels, one interactive target per row, offline detail

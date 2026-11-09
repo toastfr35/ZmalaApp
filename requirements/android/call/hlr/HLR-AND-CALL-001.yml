@@ -20,7 +20,7 @@ references:
   type: file
 reviewed: null
 scope: Experimental
-text: The Android preview shall register with the configured LAN SIP server, initiate video calls to permitted
+text: The Android app shall register with the configured LAN SIP server, initiate video calls to permitted
   contacts, allow a user to answer or decline authenticated incoming calls and end calls while the app
   is visible. A user-started or answered call shall retain audio through Home, activity recreation and
   screen locking under a foreground call service, pause camera sending while hidden, and restore video
