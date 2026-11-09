@@ -49,11 +49,16 @@ references:
   type: file
 - path: tests/android/LLT/device/CallPhotoImageTest.java
   type: file
+- path: tests/android/LLT/device/CallPhotoShareTest.java
+  type: file
 verification: Unit-test result generation fencing across stop and new calls. Decode bounded synthetic
   images on Android and reject malformed/oversized input. Use the call HLT to exercise picker-result delivery,
   authenticated upload/renewal/stop, Activity recreation and retained native call/audio state. Exercise
   lease expiry with a blocked request, delayed replies, stale revisions and a replaced call; assert
-  that no expired response restores a photo and that receiving never renews or deletes the sender's share. Qualify
+  that no expired response restores a photo and that receiving never renews or deletes the sender's share.
+  Verify that queued sender cleanup retains the initiating enrollment after account replacement.
+  Count image requests and visible-change notifications during unchanged and already-expired polls;
+  check source-stream closure and preserved interruption on cancellation. Qualify
   the system picker and real speech/video separately on hardware.
 
 # Receiving uses the same authenticated dialog and retains native call surfaces.

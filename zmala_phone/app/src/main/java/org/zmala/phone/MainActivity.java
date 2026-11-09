@@ -229,7 +229,7 @@ public final class MainActivity extends Activity implements CallSession.Observer
     if (request == 10) {
       String call = photoPickerCall; photoPickerCall = null;
       if (result == RESULT_OK && data != null && data.getData() != null)
-        session.choosePhoto(data.getData(), call);
+        session.choosePhoto(data.getData(), call, enrollment);
       return;
     }
     if (request == 9) {

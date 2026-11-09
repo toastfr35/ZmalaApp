@@ -79,8 +79,8 @@ final class CallSession {
     }
     return null;
   }
-  void choosePhoto(android.net.Uri uri, String call) {
-    if (call != null && call.equals(shareableCallId())) photos.choose(uri, call);
+  void choosePhoto(android.net.Uri uri, String call, Enrollment enrollment) {
+    if (call != null && call.equals(shareableCallId())) photos.choose(uri, call, enrollment);
   }
   String callId() { return engine.call == null ? null : engine.call.getCallLog().getCallId(); }
 

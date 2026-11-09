@@ -20,14 +20,14 @@ final class CallPhotoHttp {
     connection.setRequestProperty("Authorization", "Bearer " + enrollment.token);
     try {
       if (bytes != null) {
-        if (bytes.length > 2097152) throw new IOException("Photo too large");
+        if (bytes.length > CallPhotoImage.MAX_BYTES) throw new IOException("Photo too large");
         connection.setDoOutput(true); connection.setRequestProperty("Content-Type", "image/jpeg");
         connection.setFixedLengthStreamingMode(bytes.length);
         try (OutputStream out = connection.getOutputStream()) { out.write(bytes); }
       }
       if (connection.getResponseCode() != 200) throw new IOException("Photo request failed");
       try (InputStream in = connection.getInputStream()) {
-        return HttpPolicy.read(in, image ? 2097152 : 8192, "Response too large");
+        return HttpPolicy.read(in, image ? CallPhotoImage.MAX_BYTES : 8192, "Response too large");
       }
     } finally { connection.disconnect(); }
   }

@@ -77,11 +77,12 @@ public class CallPhotoFlowTest {
         PhoneFixture.waitFor(() -> !session.photos.receiving && session.photos.image == null);
         http.failPhotoRequests=false; http.sharing=false; http.remaining=12000; http.revision++;
         String oldId = session.callId();
-        PhoneFixture.INSTRUMENTATION.runOnMainSync(() -> session.photos.choose(Uri.fromFile(photo), oldId));
+        Enrollment identity = new Enrollment(PhoneFixture.qr(http.port(), "app"));
+        PhoneFixture.INSTRUMENTATION.runOnMainSync(() -> session.photos.choose(Uri.fromFile(photo), oldId, identity));
         PhoneFixture.waitFor(() -> session.photos.image != null);
         PhoneFixture.endSession();
         PhoneFixture.waitFor(() -> session.photos.image == null && !http.sharing);
-        PhoneFixture.INSTRUMENTATION.runOnMainSync(() -> session.photos.choose(Uri.fromFile(photo), oldId));
+        PhoneFixture.INSTRUMENTATION.runOnMainSync(() -> session.photos.choose(Uri.fromFile(photo), oldId, identity));
         assertFalse(session.photos.active());
       }
     } finally {

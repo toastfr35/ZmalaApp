@@ -13,6 +13,18 @@ public final class CallPhotoFixture implements AutoCloseable {
   public volatile long remaining=12000;
   public volatile byte[] photo;
   public volatile int revision, renewals;
+  public volatile int statusRequests, imageRequests, deletes;
+  public final java.util.List<String> authorizations = new java.util.concurrent.CopyOnWriteArrayList<>();
+  public volatile Gate statusGate, imageGate, uploadGate;
+  /** Hold one response after its snapshot is captured, without blocking the app's main thread. */
+  public static final class Gate {
+    public final java.util.concurrent.CountDownLatch entered = new java.util.concurrent.CountDownLatch(1);
+    public final java.util.concurrent.CountDownLatch release = new java.util.concurrent.CountDownLatch(1);
+    void await() throws InterruptedException {
+      entered.countDown();
+      if (!release.await(10, java.util.concurrent.TimeUnit.SECONDS)) throw new AssertionError("Fixture gate timed out");
+    }
+  }
   public CallPhotoFixture(JSONObject config) throws IOException {
     thread = new Thread(() -> {
       while (!server.isClosed()) {
@@ -21,20 +33,30 @@ public final class CallPhotoFixture implements AutoCloseable {
           InputStream input = socket.getInputStream();
           String request = line(input), header;
           int length = 0;
-          while (!(header = line(input)).isEmpty())
+          while (!(header = line(input)).isEmpty()) {
             if (header.toLowerCase(java.util.Locale.ROOT).startsWith("content-length:"))
               length = Integer.parseInt(header.substring(15).trim());
+            if (header.toLowerCase(java.util.Locale.ROOT).startsWith("authorization:"))
+              authorizations.add(header.substring(14).trim());
+          }
           byte[] body = input.readNBytes(length);
           JSONObject response = config;
           if (request.contains(" /api/call/photo?")) {
             if (failPhotoRequests) continue;
+            if (request.startsWith("GET ")) {
+              if (request.contains("&image=1")) imageRequests++;
+              else statusRequests++;
+            }
             if (request.startsWith("PUT ")) { photo = body; revision++; sharing = true; }
-            if (request.startsWith("DELETE ")) { photo = null; revision++; sharing = false; }
+            if (request.startsWith("DELETE ")) { photo = null; revision++; sharing = false; deletes++; }
             if (request.startsWith("POST ")) renewals++;
             response = new JSONObject().put("revision", revision).put("sharing", sharing)
                 .put("lease_ms", 12000).put("remaining_ms", remaining);
           }
           byte[] bytes = request.contains("&image=1") && photo != null ? photo : response.toString().getBytes(StandardCharsets.UTF_8);
+          Gate gate = request.startsWith("PUT ") ? uploadGate : request.startsWith("GET ")
+              ? (request.contains("&image=1") ? imageGate : statusGate) : null;
+          if (gate != null) gate.await();
           socket.getOutputStream().write(("HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: "
               + bytes.length + "\r\nConnection: close\r\n\r\n").getBytes(StandardCharsets.US_ASCII));
           socket.getOutputStream().write(bytes);
@@ -52,5 +74,8 @@ public final class CallPhotoFixture implements AutoCloseable {
     return out.toString(StandardCharsets.US_ASCII);
   }
   public int port() { return server.getLocalPort(); }
-  public void close() throws Exception { server.close(); thread.join(2000); }
+  public void close() throws Exception {
+    for (Gate gate : new Gate[]{statusGate, imageGate, uploadGate}) if (gate != null) gate.release.countDown();
+    server.close(); thread.join(2000);
+  }
 }
