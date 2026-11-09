@@ -12,7 +12,7 @@ Android application, package `org.zmala.phone`. Build with the pinned Gradle wra
 JVM tests and device scenarios live in `../tests/android/`, not under the Gradle app tree. `make test-android-device` requires an explicitly selected test device. Release signing inputs belong only in the release workflow.
 
 Read the [implementation guide](../docs/android.md) and
-[development setup](../docs/development.md). Product requirements are in
+[development setup](../docs/general.md). Product requirements are in
 [`requirements/android/`](../requirements/android/); unit and system plans are in
 [`tests/android/`](../tests/android/).
 
@@ -22,3 +22,7 @@ Run from the repository root after installing the development dependencies:
 make phone test-android
 make requirements
 ```
+
+Run device scenarios only on an explicitly selected disposable emulator. Some
+tests replace or clear enrollment. See the development guide for temporary
+workspace placement and the distinction between fixture checks and hardware qualification.

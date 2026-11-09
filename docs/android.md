@@ -2,14 +2,15 @@
 
 Zmala Phone is the Android companion in `zmala_phone/`, package `org.zmala.phone`.
 
-Current releases support encrypted calls through the server's TLS/TURN relay from
+The implementation supports encrypted calls through the server's TLS/TURN relay from
 separate NAT networks, alongside LAN mode and Firebase incoming-call alerts while
 the activity is closed. Remote mode needs a publicly reachable, configured secure
 deployment and HTTPS enrollment. Answered/user-started calls retain audio while the screen is hidden;
 missed-call and callback indicators are shown in the contact list.
 
 Normative scope and verification plans live in `requirements/android/`; this
-file describes the implementation and its current limitations.
+file describes the implementation and its current limitations. See the
+[dated qualification record](qualification.md) for executed checks and remaining gaps.
 User-facing text is in English and French Android resources, following phone language
 or Android's per-app language selection. `UiText` translates stable engine status keys;
 translated words do not drive call state. Plural counts use Android quantity resources.
@@ -22,9 +23,10 @@ the same 60 dp minimum on the clickable view itself. Text buttons wrap and grow 
 larger text. `UiActions` also applies this policy to the update preference switch;
 Android permission, picker and installer screens retain their system layouts.
 
-
-Contents: [setup](#account-setup), [source ownership](#sources-and-ownership),
-[build and verification](#build-and-verification), [updates](#app-updates-and-contact-notices).
+Contents: [setup and calls](#account-setup), [updates and notices](#app-updates-and-contact-notices),
+[source ownership](#sources-and-ownership), [build and verification](#build-and-verification),
+[incoming calls](#firebase-incoming-calls), [release builds](#signed-release-builds),
+[callback notifications](#callback-request-notifications), [photo sharing](#sharing-a-photo-during-a-call).
 
 Configuration is validated by `Enrollment` before `CallEngine` or the UI uses it.
 Versions are JSON integers, and explicit URL ports are in 1–65535. Contacts have
@@ -61,9 +63,7 @@ separate networks through the administrator's public Zmala server.
 Allow notifications when prompted to receive calls while using another app or
 when the phone is asleep. The phone and Pi need internet access for Firebase.
 
-If notifications are denied, enable them in Android Settings > Apps > Zmala Phone >
-
-Notifications, then reopen Zmala Phone. Android Force stop blocks delivery until
+If notifications are denied, enable them in Android Settings > Apps > Zmala Phone > Notifications, then reopen Zmala Phone. Android Force stop blocks delivery until
 the app is opened again; swiping it from Recents is not the same operation.
 
 A blue App contact may be reachable through push even when its activity is closed.
@@ -93,7 +93,7 @@ connection errors remain visible.
 
 Long names may wrap and increase row height rather than truncate.
 
-Short lists are vertically centered between the header and preview notice;
+Short lists are vertically centered between the header and contact footer;
 longer lists start at the top and scroll. The contact ScrollView fills its viewport
 and its row container centers its children when extra height is available.
 
@@ -118,7 +118,8 @@ idle core left the next-call default unspecified. This could explain a quiet cal
 using the earpiece despite the loudspeaker icon. The routing defect is corrected;
 other causes of low acoustic level still need physical listening checks.
 
-The controls start hidden and disappear after five seconds without interaction;
+The controls start hidden and normally disappear after five seconds without interaction,
+subject to the accessibility timeout and focus behavior described above;
 short Mic, Sound, Camera and End labels appear with them. The first call briefly
 explains tapping and volume swipes. A compact status remains visible when microphone
 or received sound is muted, independently of the auto-hiding controls.
@@ -154,14 +155,13 @@ access with enlarged text. Portrait loading is asynchronous and scoped to that v
 missing images keep the common logo.
 
 Call and answer controls are green; decline and hangup are red. The dark palette
-comes from `zmala_terminal/common/theme.py`. The shared transparent A1 mark
+is defined by the app’s `MainActivity` palette and shared screen styles. The shared transparent A1 mark
 appears in the app header and as the portrait fallback. The adaptive launcher
 icon uses the compact A3 dark mark. See `docs/branding/` for the artwork sources.
-To remove enrollment, use Android Settings > Apps > Zmala Phone > Storage >
-
-Clear storage (called Clear app data on some phones), then scan an App QR again.
-
-This stops the app and removes its local data; the server account is unchanged.
+Use the launcher’s **Forget setup** shortcut to remove enrollment while keeping general
+preferences. Android Settings > Apps > Zmala Phone > Storage > Clear storage is a full
+local reset instead: it also removes preferences and stops the app. Neither action
+deletes the server account; obtain the appropriate App QR before reconnecting.
 
 There is no reset action within the app. There is no manual SIP editor or public Linphone account assistant.
 
@@ -173,10 +173,11 @@ progress and enabled/unavailable alerts. Disabled notifications open app or chan
 settings as appropriate; failed registration offers retry and missing server support
 explains how the person who supplied the QR can help. Setup does not show this footer.
 `AppUpdates` checks the fixed public GitHub latest-release API at most every six
-hours on opening; `UpdateJob` schedules a daily network-constrained metadata check.
+hours on opening; **Check now** can bypass that interval while call admission allows it.
+`UpdateJob` schedules a daily network-constrained metadata check.
 No server bearer token, account identity or GitHub token goes to GitHub. Only
 stable newer releases with the exact uploaded APK asset and SHA256 digest qualify.
-Downloads use bounded HTTPS redirects to GitHub asset hosts and private cache
+The exact release asset must fit the 512 MiB limit. Downloads use bounded HTTPS redirects to GitHub asset hosts and private cache
 storage, with length, digest, package, version, debug-flag and signer checks.
 Android PackageInstaller performs final APK signature validation.
 New release discovery changes the footer action to **Update available** without opening
@@ -192,7 +193,8 @@ Android 12+ may also require confirmation; an automatic attempt then falls back
 to manual Update without repeatedly launching approval. Later defers reminders
 and automatic work for 24 hours. Background jobs check metadata only; APK transfer
 and installation require the visible app. Android scheduling and Force stop can
-delay checks. The first updater-enabled release still needs a manual installation.
+delay checks. Interrupted transfers delete the partial APK and start again on retry.
+The first updater-enabled release still needs a manual installation.
 Debug builds cannot update to the differently signed public release.
 
 `UpdateGate` serializes native call admission, verified push rings and installation
@@ -225,7 +227,38 @@ is the requester. Shared server callbacks deduplicate, expire and complete on
 connection for App and Terminal accounts. Old servers omit the capability, so
 the action stays hidden. App callbacks need a server upgrade as well as the APK.
 
+### Contact presence colours
+
+Contacts distinguish confirmed activity from unconfirmed push delivery: **Available**
+(green) means a current SIP registration remains reachable under the server's
+five-second checks; **Try calling** (blue) means only push eligibility remains;
+**Offline** (red) means neither. Both green and blue permit an attempted call.
+A push registration is not proof that the app is installed, online or ready to answer.
+The API adds `presence` (`available`, `push`, `offline`) to full, delta and preflight
+responses; `online` remains true for both callable states for older clients.
+Terminal live information expires after six seconds without a successful refresh,
+and cached configurations discard both live fields. Android retains the last validated
+directory during a temporary configuration failure, shows reconnect help and disables
+new calls until its registration returns. Revoked or invalid configuration clears access.
+Contact cards show a smaller status line;
+terminal cards show the status with a check, question mark or cross. New terminal
+labels are translated in English and French, with English fallback elsewhere.
+
 ## Sources and ownership
+
+`CallSession` owns live audio state and exposes an immutable snapshot to the
+activity. Its weak observer belongs to the current screen; an old screen cannot
+detach its replacement. It supplies photo eligibility from the live call and
+configuration, revalidating picker completion. Update admission remains in
+`UpdateGate`, including when there is no activity.
+
+`SetupCoordinator` owns enrollment file operations, permission policy and
+generation tickets. `MainActivity` owns presentation and starts asynchronous
+refresh/import work; stale results are rejected after stop or enrollment replacement.
+`UiActions` applies the shared clickable-action minimum and text wrapping.
+
+`HttpPolicy` shares timeout/no-redirect setup and bounded interruptible reads.
+Each transport retains its own authentication, URL trust and error policy.
 
 This is a small Zmala UI around the Linphone SDK, not a wholesale copy of Linphone's
 messaging/account UI. Linphone Android 6.2.8, commit
@@ -243,17 +276,28 @@ connection/read timeouts and bounds configuration and photo response sizes.
 names before the configuration reaches rendering or notice reconciliation. Calls build
 their target from the validated account ID and enrolled SIP domain, rather than a contact URL.
 
-`MainActivity` owns asynchronous configuration refresh, generation-based stale
-response rejection, screen state and private enrollment storage. Only the QR
-payload is retained in `getNoBackupFilesDir()`; fetched SIP passwords are in memory.
-
-The app does not save them into Linphone's configuration or a call-history database.
+`SetupCoordinator` stores the QR enrollment in `getNoBackupFilesDir()`; fetched SIP
+and TURN credentials stay in memory. Android-derived trust roots also have a private
+no-backup file for native TLS. Feature preferences, bounded notices and temporary
+update state use private app storage. Backup is disabled. The app does not save SIP
+passwords into Linphone’s configuration or a call-history database.
 
 `PortraitQueue` runs best-effort portrait downloads on a separate single worker with at
 most forty queued jobs. A new contact view clears obsolete queued work; leaving the
 view invalidates its tickets, so an old in-flight image cannot update a newer screen.
 Configuration, presence and callback requests retain their own executor and cannot
 be delayed behind image downloads. Missing or discarded images keep the logo placeholder.
+
+`PortraitLoader` retains an 8 MiB LRU cache of decoded static bitmaps, sampled to
+at most 256 pixels per side. Immutable photo paths are reused across directory
+refreshes; changing enrollment clears the cache. View tickets reject obsolete
+results before they reach the cache or a view. Disposal clears memory and stops
+queued work; no portrait disk cache is introduced.
+
+Animated server portraits use the authenticated GIF route with a 16 MiB encoded
+response cap; PNG/JPEG retain the 2 MiB cap. BitmapFactory displays a sampled static
+first frame, so animations do not loop in contact or incoming-call screens.
+Transport remains same-origin and rejects redirects.
 
 `UpdateHttp` owns public update HTTP connections, bounded metadata reads and explicit
 redirect checks. Metadata uses only the fixed API URL and never redirects; APK redirects
@@ -269,6 +313,7 @@ foreground-service types. Its private ongoing notification returns to the screen
 ends only the matching call ID. It is not sticky and does not recreate calls after
 process death. Wake ownership is bounded/renewed while the service exists and released
 with the call. Idle closure has neither a foreground service nor a SIP registration.
+Repeated service starts retain one renewable wake lock rather than acquiring more.
 
 On hiding an active call, `CallEngine.background` detaches native surfaces, disables
 that call's camera through `Call.setCameraEnabled(false)` and sets the SDK background
@@ -276,8 +321,8 @@ iteration schedule to 20 ms. Core-wide capture defaults alone do not change a cu
 call. Return reattaches fresh surfaces and resumes the same call's camera without
 another SIP offer. Background active-call configuration polling still handles revocation;
 transport failures preserve the current call and show reconnection status. Audio focus
-and listening/microphone state survive activity recreation. Only the selected contact
-ID is saved in the activity bundle; credentials remain in memory.
+and listening/microphone state survive activity recreation. The activity bundle retains selected/callback contact IDs and the photo-picker call
+ID for UI recovery; it does not save enrollment, SIP or TURN credentials.
 
 These choices follow Android's [foreground-service declaration](https://developer.android.com/develop/background-work/services/fgs/declare)
 and [visible-start restrictions](https://developer.android.com/develop/background-work/services/fgs/restrictions-bg-start).
@@ -285,11 +330,8 @@ Force stop, process/service termination and vendor restrictions can still end ca
 physical device/Doze/audio qualification is separate from emulator lifecycle evidence.
 
 `CallEngine` owns the SDK on Android's main thread. It uses the supplied proxy,
-
 Digest credentials, one call, audio/video codecs, no RTP bundle and no ICE in
-
 LAN mode. `SecureCalls` validates encrypted relay policy and configures SIP TLS,
-
 TURN TLS, forced ICE relay and mandatory SRTP in secure mode. Certificates and
 names are verified using Android's trusted roots; the server cannot inject a CA.
 
@@ -297,9 +339,8 @@ The roots are exported atomically into the app's private no-backup directory and
 passed as a CA file, because native TURN TLS needs a file rather than SIP's PEM-data API.
 
 `TurnTransport` loads the native framing correction before the SDK. Its global
-
-ELF symbol replaces the pinned SDK's fragmented TURN packet reader; the live
-hardware test verifies that this reader actually handles relay traffic. The
+ELF symbol replaces the pinned SDK's fragmented TURN packet reader; the opt-in
+hardware test checks that this reader actually handles relay traffic. The
 same library corrects TLS writes that the SDK otherwise drops on socket
 backpressure. The shared writer in `vendor/terminal-contracts/turn-write.h`
 retains buffers across retries and short writes, waits in 100 ms polls, and
@@ -353,7 +394,6 @@ Server configuration polls occur every ten seconds while open.
 ## Build and verification
 
 Use native Windows Android Studio and SDK for device access and emulator testing;
-
 WSL is not needed for app development. The repository wrapper pins Gradle 9.5.1
 and AGP 9.2.1. Use JDK 21 or newer compatible with these tools. Compile/target API
 is 37; minimum API is 28. APKs include arm64-v8a and x86_64. The native correction
@@ -364,25 +404,19 @@ environment when present, otherwise `python3`; `PYTHON` can select another inter
 the correction for both ABIs, using the AAR's own C++ runtime. Its JNI regression
 helper is packaged only in the test APK.
 
-On the prepared Windows PC:
-```powershell
-
-make phone test-android
-
-$env:ANDROID_SERIAL = 'emulator-5580'
-
-make test-android-device
-
-# Clears only the explicitly selected disposable emulator, never a physical phone:
-
-.venv/Scripts/python.exe tests/android/LLT/clear_storage.py
-```
+Run `make phone test-android` from a disposable worktree under top-level `tmp/`.
+Follow the [engineering guide](general.md#device-checks-and-evidence) for native
+test selection. `tests/android/LLT/clear_storage.py` is an explicitly destructive
+storage check and requires a selected disposable emulator.
 
 The APK is `zmala_phone/app/build/outputs/apk/debug/app-debug.apk`. Debug signing
-is for development. Do not use it as a public release. The Android CI job builds
-and runs JVM tests/lint; device tests run explicitly against the selected device.
+is for development. Do not use it as a public release. GitHub Verify runs requirements/version checks, the debug build, JVM tests, lint,
+tooling tests and guide generation. Device tests run explicitly on a selected
+disposable emulator. See [development setup](general.md) for workspace placement
+and commands.
 
-Keep the selected phone unlocked and awake for UI scenarios. No connected device
+Keep the disposable emulator unlocked and awake for UI scenarios. Some tests replace
+enrollment or clear storage; do not run the complete suite on a personal phone. No connected device
 means those tests were not run.
 
 Tests remain in the repository's top-level tree: JVM LLTs under
@@ -404,16 +438,19 @@ network and observed media results. A signalling fixture is not a passed media t
 
 The optional local `app/google-services.json` is compiled into Firebase resource
 values; CI fixture builds can omit it. Firebase Messaging uses BoM 35.0.2 with no
-
-Analytics dependency. The Firebase Messaging integration can use the no-cost Spark plan; this path
-needs no paid Functions or database. `PushService` validates an HMAC using the
+Analytics dependency. This integration uses Firebase Messaging without a Functions
+or database backend. `PushService` validates an HMAC using the
 private enrollment token before showing a native CallStyle notification. The
 payload contains caller ID, call ID, event, expiry, device ID and proof; the caller
 name is taken from a local cache, not sent through Google. SIP credentials and
 media do not pass through Firebase.
 
-`PushAlerts` requests notification permission, registers the token against the
+`MainActivity` verifies notification answer data again. `PushAnswer` retains one
+call-ID/expiry pair and consumes it only for the matching authenticated incoming
+SIP call. The queued answer rechecks identity, state and visibility before starting
+the foreground call service; a stale notification cannot answer a different call.
 
+`PushAlerts` requests notification permission, registers the token against the
 App bearer and renews it at most hourly while open. Disabling notifications removes
 the destination on the next app open when both call and callback channels are disabled. New tokens replace old ones; reinstalling or
 clearing storage requires enrollment again. Server tokens expire after 30 days
@@ -438,14 +475,15 @@ Android can show the incoming screen over the lock screen when full-screen-call
 permission is available; otherwise it presents the call notification. No permanent
 foreground service, microphone or camera is started by push alone. After a visible user starts or answers a call, CallService may retain microphone audio while the screen is hidden; camera sending is paused. Notification/channel
 permissions, Android Force stop, OEM battery restrictions, connectivity and Google
-
 Play services affect delivery. Qualify these on the actual target phone; emulator
 callback tests do not establish FCM delivery or Doze reliability. Return through the ongoing call notification to resume video after switching apps or locking the screen. Sender setup is in the [ZmalaServer technical guide](https://github.com/toastfr35/ZmalaServer/blob/main/docs/server.md).
 
 ## Signed release builds
 
-Release packaging is separate from the runtime requirements. Set up Java and the
-Android SDK as above, then run `python build_tools/android/release.py`. The helper
+Release packaging is separate from runtime requirements. Normal publication uses
+the protected **Release** workflow on `main`, with the original signing identity
+and Firebase configuration. `build_tools/android/release.py` is the packaging
+helper used by that workflow. It accepts the existing signing identity and
 defaults to `~/.zmala/signing/android-release.json`; `--signing` selects another
 private file outside the checkout. Its fields are `storeFile`, `storePassword`,
 `keyAlias`, `keyPassword` and the pinned public `certificateSha256` fingerprint.
@@ -463,11 +501,12 @@ publish the signed APK, checksum, signature details and the Android installation
 and user guides. Gradle requires the release signing configuration and Firebase
 client configuration before it will assemble a release APK. The Verify workflow
 builds and checks debug variants without either input. Dispatch Release from
-main after verification. Only its protected release environment supplies the
+main after verification of the intended release commit. The publishing helper rejects
+a superseded main commit or an unexpected asset list. Only its protected release environment supplies the
 Android signing and Firebase inputs.
 
 The historical first signed release was 0.3.6, version code 15. The app supports Android 9/API 28 or newer,
-arm64-v8a and x86_64. It uses the qualified native libraries without adding code
+arm64-v8a and x86_64. It uses the pinned native libraries without adding code
 shrinking. Subsequent releases must increase the version code and retain the same
 signing identity. Release and development APKs have different certificates:
 Android cannot install one over the other. Obtain a fresh enrollment QR before
@@ -487,109 +526,8 @@ are not server sender credentials. See `zmala_phone/NOTICE.md` for corresponding
 source access and packaged dependency notices. The APK includes the AGPL and Apache
 licenses and the pinned SDK/component notice inventory under assets/licenses/.
 
-## Qualification record
-
-Development versions were exercised on a OnePlus KB2003/Android 14 and a POCO F1/
-Android 10, including QR enrollment, permissions, foreground calls, camera switching,
-rotation, native incoming-call notifications and secure relayed media. MIUI required
-on-device APK installation. This is a bounded device sample, not universal OEM
-compatibility. Private device identities, enrollments and captures are not published.
-
-The 0.3.6 changes address deferred notification answering and cooperate with the Pi's
-first-picture keyframe retries. A C20 USB timeout was recovered operationally by
-cycling its power; its underlying trigger remains undetermined. Four Pi-to-phone
-calls passed with remote video on both screens: two process-absent push starts and
-two foreground starts. Six further calls alternated phone-to-Pi and Pi-to-phone
-three times without restarts, all displaying remote video at both ends. Native
-samples showed relay ICE, increasing received packets and nonzero phone decode
-rates. Rates varied approximately 4–34 fps in the alternating run; neither uniform
-smoothness, exact startup latency nor audible speech is inferred from those samples.
-Temporary answering controllers were stopped and diagnostic logging disabled.
-
-Nine portable Android tests, lint, two emulator notification checks, the focused Pi
-native filter regression and requirement validation passed for the 0.3.6 changes.
-The new native first-picture regression also failed against the old implementation.
-Hardware observations do not mark unexecuted HLT plans passed. The signed 0.3.6
-release also passed APK signature, alignment and manifest checks. Seven emulator
-checks against the non-debuggable release covered scanner launch, enrollment/call
-flow, native call-engine ownership/camera switching and notifications. The test APK
-was signed privately with the same release identity for instrumentation; it is not
-a distribution artifact. Release lint reported zero errors and six existing
-warnings. Packaging checks rejected missing signing and missing Firebase inputs.
-Physical call qualification used the same 0.3.6 sources in the development variant;
-the release certificate was not installed over existing phones' debug enrollment.
-
-For 0.3.7, portable tests, release lint and eight emulator instrumentation cases
-passed, covering native calls, notices, callback submission, the contact-only version
-and invalid installer inputs. A separate emulator run performed a real same-key
-PackageInstaller self-update using a private higher-version fixture: APK transfer
-was refused during an outgoing native call, then automatic installation completed
-after hangup and retained enrollment. Only the HTTPS transport was replaced with
-fixture metadata and bytes; this does not qualify GitHub availability or older OEM
-approval behavior. The OnePlus was migrated to the signed release with enrollment
-preserved, media/notification permissions restored and the contact screen checked.
-The Pi's App callback API passed a deployed capability check. Cross-device callback
-delivery and the complete physical update matrix remain hardware plans, not passed
-runs. Nine focused server callback/API scenarios and requirements validation passed.
-
-
-### Contact presence colours
-
-Contacts distinguish confirmed activity from unconfirmed push delivery: **Available**
-(green) means a current SIP registration remains reachable under the server's
-five-second checks; **Try calling** (blue) means only push eligibility remains;
-**Offline** (red) means neither. Both green and blue permit an attempted call.
-A push registration is not proof that the app is installed, online or ready to answer.
-The API adds `presence` (`available`, `push`, `offline`) to full, delta and preflight
-responses; `online` remains true for both callable states for older clients.
-Terminal live information expires after six seconds without a successful refresh,
-and cached configurations discard both live fields. Android retains the last validated
-directory during a temporary configuration failure, shows reconnect help and disables
-new calls until its registration returns. Revoked or invalid configuration clears access.
-Contact cards show a smaller status line;
-terminal cards show the status with a check, question mark or cross. New terminal
-labels are translated in English and French, with English fallback elsewhere.
-
-
-## Call controls check on 25 October 2026
-
-On the connected OnePlus and term2, the native output changed from loudspeaker
-to earpiece to muted and back while microphone mute remained independent.
-The existing Android call-volume setting was 9 of 9; a downward video swipe
-changed it to 7 and an upward swipe restored 9. This does not establish an
-acoustic loudness improvement: the original low-volume report still needs a
-human listening comparison.
-
-The original preview reproduced a 0 by 0 Java capture size while the native
-camera supplied 1280 by 720 and the sent portrait stream was 720 by 1280.
-After the bridge correction, the corner surface followed 480 by 640 portrait,
-640 by 480 landscape and back, then 720 by 1280 after camera changes, using a
-216 by 384 pixel corner surface for that widescreen portrait image. Both camera
-switches retained the call. Ten targeted emulator native/display scenarios also
-passed, covering icon states, independent mute, volume gestures/bounds, preview
-size propagation, pixel scaling, timed controls and call/rotation ownership.
-
-## UI and live-call check on 26 October 2026
-
-The signed 0.3.17 candidate was installed over 0.3.16 on the OnePlus 8T running
-Android 14 without replacing its enrollment. Real contact cards, the person page,
-offline Call-disabled behavior, caller portrait and separate answer/decline actions
-were inspected. The disposable emulator separately covered request/cancel behavior,
-French app-locale switching, enlarged fonts and permission failures.
-
-Initial live calls exposed a terminal renewal-dispatch fault: its poll controller
-ignored fresh relay credentials at an unchanged configuration revision. After the
-backed-up terminal fix, phone-to-terminal and terminal-to-phone calls displayed
-video on both devices. The handset logged first decoded frames 2.611 and 2.285
-seconds after answer respectively. The reverse call began with the app behind Home
-and was opened through its Firebase notification.
-
-During an answered call, Home retained the foreground call service and paused the
-phone camera; returning through the ongoing notification restored both video views.
-Hangup removed the foreground service. These observations do not qualify audible
-speech, cellular relay connectivity, deep Doze or vendor battery restrictions.
-
 ## Callback request notifications
+
 `CallbackBook` and `CallbackAlerts` reconcile ordinary callback reminders from the
 authenticated configuration. Incoming pending requests use the separate Callback
 requests channel, the current permitted contact name and a timeout matching the
@@ -614,31 +552,11 @@ at most twice; expired or revoked hints stop. Android 9–11 may briefly show a 
 checking-requests foreground notification. No idle SIP connection or camera/microphone
 is started. This follows [Firebase background processing guidance](https://firebase.google.com/docs/cloud-messaging/android-message-priority).
 
-Verification on 27 October 2026: JVM state/proof tests, server lifecycle/HTTP tests
-and three emulator notification tests passed. The OnePlus was updated in place to
-signed 0.3.19. Real FCM delivery displayed the requester, tapping opened that
-contact without dialing, and cancelling the test request removed the reminder.
-Foreground and Home-screen cases passed; emulator fixtures also covered stale
-snapshots, deadline changes, enrollment isolation and ordinary call-alert regression.
-These checks do not qualify every vendor battery policy or deep Doze behavior.
-
-
-Animated server portraits use the authenticated GIF photo route with a separate
-16 MiB encoded response cap; PNG/JPEG retain the 2 MiB cap. Android's existing
-BitmapFactory path displays a sampled static first frame, so animations do not loop
-in contact or incoming-call screens. Transport remains same-origin and rejects redirects.
-
-`PortraitLoader` owns the Activity's bounded portrait queue and an 8 MiB LRU cache
-of decoded static bitmaps, sampled to at most 256 pixels per side. Immutable photo paths are reused across live directory
-refreshes; changing enrollment clears the cache. View tickets reject obsolete
-results before they reach either the cache or a view. Disposal clears memory and
-stops queued work; no portrait disk cache is introduced. `CallService` similarly
-owns exactly one renewable wake lock, even if Android delivers repeated starts.
-
 ## Sharing a photo during a call
+
 `CallPhotoShare` belongs to `CallSession`, so rotating the Activity or opening the
 system image picker keeps the share and the native call. `MainActivity` offers
-Share photo only for connected App or Terminal contacts when the server advertises
+**Share a photo** only for connected App or Terminal contacts when the server advertises
 `call_photo_sharing`. `ACTION_OPEN_DOCUMENT` selects one image without requesting
 broad library permission. Picker cancellation leaves the call unchanged.
 
@@ -652,25 +570,18 @@ The image overlays both video views with FIT_CENTER; microphone, listening volum
 and hangup remain usable. Cameras/media surfaces are retained beneath the layer.
 Stop clears it immediately and requests deletion; renewals every three seconds
 maintain the server's 12-second lease. Call identity plus `PhotoShareEpoch` reject
-late results after stop or a new call. Network failure ends sharing with a message;
-it does not end the voice call. A receiving phone polls the same authenticated endpoint, preserving the last lease deadline through failed requests. It hides sender-only actions and clears the image on stop, expiry or call change. Only one caller shares at a time; either app can claim the next idle share. This is not a photo album.
+late results after stop or a new call. Sender upload or renewal failure stops the
+share and shows a message; the voice call continues. A receiving phone polls the
+same authenticated endpoint, preserving the last lease deadline through failed
+requests. It hides sender-only actions and clears the image on stop, expiry or
+call change. Only one caller shares at a time; either app can claim the next idle
+share. Shared photos are temporary and are not saved to the recipient's album.
 
 Photo state and timers belong to the main thread; the single worker handles I/O
 and returns immutable receive results. Unchanged revisions reuse their displayed
-bitmap and renew the lease without notifying the screen. An already-expired status
+bitmap and refresh their local expiry deadline without notifying the screen. Only
+the sender renews the server lease. An already-expired status
 does not trigger an image download, and a separate timer clears an expired image
 even while HTTP is blocked. Only unpublished results are explicitly recycled;
 displayed bitmaps can still be referenced by a view. Sender operations capture the
 initiating enrollment, so queued cleanup cannot use a replacement account.
-
-CallSession owns microphone mute, selected output and reconnection state. MainActivity consumes an immutable session snapshot and sends explicit mute/output actions; recreation does not copy live audio state into a second owner.
-
-CallSession attaches a weak Observer interface, never a concrete MainActivity. Detach only releases the matching observer; replacing a screen cannot let an old stop callback detach the new screen. Call media and foreground-service ownership remain application scoped.
-
-SetupCoordinator owns enrollment file operations, configuration loading entry point, required permission policy and screen-work generations. MainActivity presents Android permission/scanner dialogs; stale configuration and QR-import results are rejected using coordinator tickets after stop or enrollment replacement.
-
-Notification handover: PushService delegates signed PushMessage verification and alert lifetime to PushAlerts. Its answer Intent retains the signed fields. MainActivity verifies again, then PushAnswer owns one call-ID/expiry pair and consumes it once for the matching native incoming call. The queued answer rechecks native identity/state and visibility before CallService preparation; the incoming screen only emits user actions. Expired/replaced pending answers cannot accept another call. Foreground/full-screen Android restrictions remain explicit.
-
-HttpPolicy shares explicit timeout/no-automatic-redirect setup and bounded interruptible reads. ServerApi retains bearer authentication and treats oversized responses as invalid configuration; CallPhotoHttp retains per-image/status bounds. UpdateHttp retains public URL allowlists and redirect-hop validation. No credential handling or APK streaming/download cancellation policy is merged across transports.
-
-CallSession supplies photo eligibility and picker call identity from the current native call/configuration, revalidating picker completion before PhotoShareEpoch handles asynchronous work. Session changes notify AppUpdates even without an Activity. UpdateGate remains the narrow call/ring/install exclusion policy; the updater never reads Activity call fields and retains its independent install admission check.

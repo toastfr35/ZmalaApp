@@ -6,9 +6,9 @@ A1 is the main Zmala brand. A3 is the compact phone app mark.
 
 PNG contains 18 exports:
 
-- A1 with the Zmala wordmark, on light and dark backgrounds, at256,512 and1024pixels wide.
-- A1 without the wordmark, on light and dark backgrounds, at256,512 and1024pixels square.
-- A3 without text, on light and dark backgrounds, at256,512 and1024pixels square.
+- A1 with the Zmala wordmark, on light and dark backgrounds, at 256, 512 and 1024 pixels wide.
+- A1 without the wordmark, on light and dark backgrounds, at 256, 512 and 1024 pixels square.
+- A3 without text, on light and dark backgrounds, at 256, 512 and 1024 pixels square.
 
 Wordmark exports preserve the master aspect ratio; exact dimensions are in sizes.json.
 Masters contains the six full-resolution PNG masters.
