@@ -635,7 +635,7 @@ results before they reach either the cache or a view. Disposal clears memory and
 stops queued work; no portrait disk cache is introduced. `CallService` similarly
 owns exactly one renewable wake lock, even if Android delivers repeated starts.
 
-## Sharing a photo during a terminal call
+## Sharing a photo during a call
 `CallPhotoShare` belongs to `CallSession`, so rotating the Activity or opening the
 system image picker keeps the share and the native call. `MainActivity` offers
 Share photo only for connected App or Terminal contacts when the server advertises
@@ -645,12 +645,23 @@ broad library permission. Picker cancellation leaves the call unchanged.
 `CallPhotoImage` bounds source data to 20 MiB/64 million pixels, uses ImageDecoder
 orientation and downsampling, and uploads a JPEG up to 1600 pixels per side/2 MiB.
 `CallPhotoHttp` uses the enrollment origin and bearer token with redirects disabled.
+Selected-image reads use the same bounded, interruptible reader as HTTP. Received
+JPEG dimensions are checked before allocating pixels, using the same normalized
+image limits as the sender.
 The image overlays both video views with FIT_CENTER; microphone, listening volume
 and hangup remain usable. Cameras/media surfaces are retained beneath the layer.
 Stop clears it immediately and requests deletion; renewals every three seconds
 maintain the server's 12-second lease. Call identity plus `PhotoShareEpoch` reject
 late results after stop or a new call. Network failure ends sharing with a message;
 it does not end the voice call. A receiving phone polls the same authenticated endpoint, preserving the last lease deadline through failed requests. It hides sender-only actions and clears the image on stop, expiry or call change. Only one caller shares at a time; either app can claim the next idle share. This is not a photo album.
+
+Photo state and timers belong to the main thread; the single worker handles I/O
+and returns immutable receive results. Unchanged revisions reuse their displayed
+bitmap and renew the lease without notifying the screen. An already-expired status
+does not trigger an image download, and a separate timer clears an expired image
+even while HTTP is blocked. Only unpublished results are explicitly recycled;
+displayed bitmaps can still be referenced by a view. Sender operations capture the
+initiating enrollment, so queued cleanup cannot use a replacement account.
 
 CallSession owns microphone mute, selected output and reconnection state. MainActivity consumes an immutable session snapshot and sends explicit mute/output actions; recreation does not copy live audio state into a second owner.
 
