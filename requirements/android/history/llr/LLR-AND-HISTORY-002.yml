@@ -7,7 +7,10 @@ scope: Experimental
 level: 2
 area: Missed calls and callback requests
 header: Contact notices and authorized callback actions
-text: The app shall persist bounded missed-call counts per enrolled identity, deduplicate push and native
+text: The app shall persist missed-call history per enrolled identity with at most 128 call records,
+  at most 128 peer counts and each count saturated at 99. New call records shall evict the oldest
+  record at capacity; adding a new peer at capacity shall evict an existing peer count.
+  The app shall deduplicate push and native
   observations of the same incoming call, and not count answered or explicitly declined calls as missed.
   An unanswered ring shall count on cancellation, native end or expiry. Contact rows shall show accessible
   missed-call counts and distinct incoming and sent callback indicators from the authenticated server
@@ -22,7 +25,8 @@ text: The app shall persist bounded missed-call counts per enrolled identity, de
   recipient, show failure or sent status, prevent duplicate in-flight submissions, and refresh the shared
   callback state. Servers without callback support shall not expose the action. Pending server callbacks
   shall disappear when completed or expired.
-verification: Test duplicate ring/answer/cancel/expiry sequences and storage reload, pair filtering and
+verification: Test 128/129 call records and peer counts, 99/100 misses for one peer, corrupt storage,
+  duplicate ring/answer/cancel/expiry sequences and storage reload, pair filtering and
   clearing. Inspect contact badges and submit the callback button through an authenticated HTTP fixture;
   verify app-to-terminal callback lifecycle against the server.
 links:

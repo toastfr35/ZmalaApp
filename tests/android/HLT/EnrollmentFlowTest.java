@@ -6,7 +6,7 @@
 
 // @plan Tap the setup action to open the real scanner, wait for its active camera preview and
 
-// cancel;
+// cancel with Android Back and inspect the resumed setup activity, including after recreation;
 
 // feed scanner results to the real activity, reject a Terminal code, confirm an App server,
 
@@ -84,9 +84,11 @@ public class EnrollmentFlowTest {
     org.json.JSONObject config = PhoneFixture.config(port);
     config.getJSONArray("contacts").put(new org.json.JSONObject()
         .put("id", "phone2").put("name", "Sleeping phone").put("photo", "")
+        .put("sip_uri", "sip:phone2@127.0.0.1")
         .put("can_call", true).put("can_receive", true).put("online", true).put("presence", "push"));
     config.getJSONArray("contacts").put(new org.json.JSONObject()
         .put("id", "term2").put("name", "Kitchen").put("photo", "")
+        .put("sip_uri", "sip:term2@127.0.0.1")
         .put("can_call", true).put("can_receive", true).put("online", false).put("presence", "offline"));
     return config;
   }
@@ -219,31 +221,22 @@ public class EnrollmentFlowTest {
 
       PhoneFixture.snapshot("scanner");
 
-      PhoneFixture.INSTRUMENTATION.runOnMainSync(opened::onBackPressed);
+      PhoneFixture.INSTRUMENTATION.sendKeyDownUpSync(android.view.KeyEvent.KEYCODE_BACK);
 
-      PhoneFixture.waitFor(
+      // Android can recreate the setup activity while the scanner owns the camera.
+      java.util.concurrent.atomic.AtomicReference<MainActivity> returned =
+          new java.util.concurrent.atomic.AtomicReference<>();
+      PhoneFixture.waitFor(() -> {
+        PhoneFixture.INSTRUMENTATION.runOnMainSync(() -> {
+          for (android.app.Activity candidate : ActivityLifecycleMonitorRegistry.getInstance()
+              .getActivitiesInStage(Stage.RESUMED)) {
+            if (candidate instanceof MainActivity) returned.set((MainActivity) candidate);
+          }
+        });
+        return returned.get() != null;
+      });
 
-          () -> {
-
-            java.util.concurrent.atomic.AtomicBoolean resumed =
-
-                new java.util.concurrent.atomic.AtomicBoolean();
-
-            PhoneFixture.INSTRUMENTATION.runOnMainSync(
-
-                () ->
-
-                    resumed.set(
-
-                        ActivityLifecycleMonitorRegistry.getInstance().getLifecycleStageOf(screen)
-
-                            == Stage.RESUMED));
-
-            return resumed.get();
-
-          });
-
-      assertTrue(PhoneFixture.hasText(screen, "Scan setup QR"));
+      assertTrue(PhoneFixture.hasText(returned.get(), "Scan setup QR"));
 
       assertFalse("Cancelling the scanner must not enroll", file.exists());
 

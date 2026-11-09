@@ -128,6 +128,7 @@ final class AppUpdates {
     main.postDelayed(tick, 1000);
   }
 
+  // @llr LLR-AND-UI-002
   void show() {
     MainActivity activity = screen.get();
     if (activity == null || !idle() || dialog != null) return;
@@ -143,7 +144,7 @@ final class AppUpdates {
     if (Build.VERSION.SDK_INT >= 31) {
       Switch toggle = new Switch(activity);
       toggle.setText(context.getString(R.string.automatic_updates));
-      toggle.setMinHeight(pad * 3);
+      UiActions.size(toggle);
       toggle.setChecked(automatic());
       toggle.setOnCheckedChangeListener((button, enabled) -> {
         prefs.edit().putBoolean("automatic", enabled).apply();
@@ -163,7 +164,7 @@ final class AppUpdates {
           prefs.edit().putLong("later_until", System.currentTimeMillis() + 86400000L).apply();
         }).create();
     dialog.setOnDismissListener(d -> { dialog = null; statusView = null; updateButton = null; progressView = null; });
-    dialog.show();
+    UiActions.show(dialog);
     updateButton = dialog.getButton(AlertDialog.BUTTON_POSITIVE);
     updateButton.setOnClickListener(v -> {
       if (!idle()) return;

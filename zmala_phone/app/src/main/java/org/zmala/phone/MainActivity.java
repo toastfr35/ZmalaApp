@@ -264,7 +264,7 @@ public final class MainActivity extends Activity implements CallSession.Observer
   private void confirmEnrollment(String text) {
     try {
       Enrollment candidate = new Enrollment(text);
-      new AlertDialog.Builder(this)
+      UiActions.show(new AlertDialog.Builder(this)
           .setTitle(getString(R.string.connect_title))
           .setMessage(
               candidate.server.toString()
@@ -281,7 +281,7 @@ public final class MainActivity extends Activity implements CallSession.Observer
                 refresh(true);
               })
           .setNegativeButton(getString(R.string.cancel), null)
-          .show();
+          .create());
     } catch (Exception e) {
       showError(getString(R.string.setup_invalid));
     }
@@ -290,12 +290,12 @@ public final class MainActivity extends Activity implements CallSession.Observer
   // @llr LLR-AND-ENROLL-002
   private void confirmForgetSetup() {
     if ((enrollment != null || setup.enrolled()) && (forgetDialog == null || !forgetDialog.isShowing())) {
-      forgetDialog = new AlertDialog.Builder(this)
+      forgetDialog = UiActions.show(new AlertDialog.Builder(this)
           .setTitle(R.string.forget_setup_title)
           .setMessage(R.string.forget_setup_message)
           .setNegativeButton(R.string.cancel, null)
           .setPositiveButton(R.string.forget_setup, (dialog, which) -> forgetSetup())
-          .show();
+          .create());
     }
   }
 
@@ -538,6 +538,10 @@ public final class MainActivity extends Activity implements CallSession.Observer
   // @llr LLR-AND-CALL-004, LLR-AND-UPDATE-002, LLR-AND-UI-002
   private void footer() {
     AlertStatus state = AlertStatus.of(config.optBoolean("push_enabled"), PushAlerts.allowed(this), pushPreparing, pushReady);
+    footer(state);
+  }
+
+  private void footer(AlertStatus state) {
     String text = switch (state) {
       case READY -> getString(R.string.incoming_enabled);
       case NOTIFICATIONS_OFF -> getString(R.string.notifications_off);
@@ -549,13 +553,13 @@ public final class MainActivity extends Activity implements CallSession.Observer
     LinearLayout status = new LinearLayout(this); status.setOrientation(LinearLayout.VERTICAL);
     TextView alerts = label(text, 13, MUTED);
     if (state != AlertStatus.READY && state != AlertStatus.PREPARING) {
-      alerts.setMinHeight(dp(48)); alerts.setBackground(rounded(PANEL));
+      UiActions.size(alerts); alerts.setGravity(Gravity.CENTER_VERTICAL); alerts.setBackground(rounded(PANEL));
       alerts.setOnClickListener(v -> {
         if (state == AlertStatus.NOTIFICATIONS_OFF) notificationSettings();
         else if (state == AlertStatus.UNAVAILABLE) registerPush();
-        else new AlertDialog.Builder(this).setTitle(getString(R.string.incoming_calls))
+        else UiActions.show(new AlertDialog.Builder(this).setTitle(getString(R.string.incoming_calls))
             .setMessage(getString(R.string.alerts_server_help))
-            .setPositiveButton(getString(R.string.ok), null).show();
+            .setPositiveButton(getString(R.string.ok), null).create());
       });
     }
     status.addView(alerts);
@@ -603,10 +607,10 @@ public final class MainActivity extends Activity implements CallSession.Observer
         if (contacts != null) for (int i = 0; i < contacts.length(); i++) {
           JSONObject peer = contacts.optJSONObject(i);
           if (unanswered.equals(peer.optString("id")) && peer.optBoolean("can_call")) {
-            contactDialog = new AlertDialog.Builder(this).setTitle(getString(R.string.call_not_answered))
+            contactDialog = UiActions.show(new AlertDialog.Builder(this).setTitle(getString(R.string.call_not_answered))
                 .setMessage(getString(R.string.callback_prompt, peer.optString("name")))
                 .setPositiveButton(getString(R.string.request_callback), (d, which) -> requestCallback(peer))
-                .setNegativeButton(getString(R.string.not_now), null).show();
+                .setNegativeButton(getString(R.string.not_now), null).create());
             break;
           }
         }
@@ -887,11 +891,11 @@ public final class MainActivity extends Activity implements CallSession.Observer
 
   private void showError(String text) {
     message = text;
-    new AlertDialog.Builder(this)
+    UiActions.show(new AlertDialog.Builder(this)
         .setTitle("Zmala Phone")
         .setMessage(text)
         .setPositiveButton(getString(R.string.ok), null)
-        .show();
+        .create());
   }
 
   // @llr LLR-AND-CALL-004
@@ -902,7 +906,7 @@ public final class MainActivity extends Activity implements CallSession.Observer
             != PackageManager.PERMISSION_GRANTED
         && !getSharedPreferences("push", 0).getBoolean("permission_asked", false)) {
       getSharedPreferences("push", 0).edit().putBoolean("permission_asked", true).apply();
-      new AlertDialog.Builder(this)
+      UiActions.show(new AlertDialog.Builder(this)
           .setTitle(getString(R.string.notification_explanation_title))
           .setMessage(
               getString(R.string.notification_explanation))
@@ -911,7 +915,7 @@ public final class MainActivity extends Activity implements CallSession.Observer
               (dialog, which) ->
                   requestPermissions(new String[] {Manifest.permission.POST_NOTIFICATIONS}, 8))
           .setNegativeButton(getString(R.string.not_now), (dialog, which) -> registerPush())
-          .show();
+          .create());
       return;
     }
     Enrollment target = enrollment;

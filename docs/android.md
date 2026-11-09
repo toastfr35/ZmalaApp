@@ -17,6 +17,11 @@ Setup, contact actions, incoming calls and update explanations scroll for enlarg
 Call controls keep the five-second default, extend it through Android's recommended
 accessibility timeout, and stay visible while focused or touch exploration is active.
 
+Notification footer actions, photo Share/Cancel/Stop and app-created dialog buttons use
+the same 60 dp minimum on the clickable view itself. Text buttons wrap and grow with
+larger text. `UiActions` also applies this policy to the update preference switch;
+Android permission, picker and installer screens retain their system layouts.
+
 
 Contents: [setup](#account-setup), [source ownership](#sources-and-ownership),
 [build and verification](#build-and-verification), [updates](#app-updates-and-contact-notices).
