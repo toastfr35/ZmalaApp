@@ -6,6 +6,7 @@
 // shortcut with an offline enrollment, cancel once, then confirm and check setup and preferences. Start a real native call
 // against local HTTP/SIP fixtures; inject a configuration 503 and then 403.
 // With notification permission unavailable, open the footer action and intercept the Android settings intent.
+// First validate the local HTTP fixture through the enrollment boundary, so malformed test data fails directly.
 // Inject a newer verified-metadata candidate without a network download; inspect the quiet footer,
 // explicit update dialog and simulated transfer/stage rendering. Do not claim package installation.
 // Clear the earlier push fixtures' ring deadline before the idle-update scenario.
@@ -106,6 +107,8 @@ public class UiImprovementFlowTest {
 
         scenario.onActivity(screen -> screen.startActivity(new Intent(shortcut).setFlags(0)));
         PhoneFixture.dialog("Forget setup");
+        // The framework dispatches the dialog listener after the click action returns.
+        PhoneFixture.waitFor(() -> !enrollment.exists());
         assertFalse(enrollment.exists());
         assertTrue(preferences.getBoolean("call_hint_seen", false));
         scenario.onActivity(screen -> {
@@ -146,6 +149,7 @@ public class UiImprovementFlowTest {
     context.getSharedPreferences("push", 0).edit().putBoolean("permission_asked", true).commit();
     try (PhoneFixture.Sip sip = new PhoneFixture.Sip(); PhoneFixture.Http http = new PhoneFixture.Http(
         PhoneFixture.config(sip.port()).put("push_enabled", true))) {
+      ServerApi.configuration(new Enrollment(PhoneFixture.qr(http.port(), "app")));
       Files.writeString(enrollment.toPath(), PhoneFixture.qr(http.port(), "app"));
       MainActivity screen = activity.launchActivity(null);
       PhoneFixture.waitFor(() -> PhoneFixture.hasText(screen, "Notifications are off\nEnable notifications"));

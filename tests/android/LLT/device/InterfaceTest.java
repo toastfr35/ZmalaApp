@@ -52,6 +52,7 @@ public class InterfaceTest {
           .put(
               new org.json.JSONObject()
                   .put("id", "term2")
+                  .put("sip_uri", "sip:term2@127.0.0.1")
                   .put("name", "Kitchen")
                   .put("photo", "")
                   .put("can_call", true)
@@ -59,6 +60,7 @@ public class InterfaceTest {
                   .put("online", false));
       config.getJSONArray("contacts").put(new org.json.JSONObject()
           .put("id", "phone2").put("name", "Sleeping phone").put("photo", "")
+          .put("sip_uri", "sip:phone2@127.0.0.1")
           .put("can_call", true).put("can_receive", true).put("online", true).put("presence", "push"));
       try (PhoneFixture.Http http = new PhoneFixture.Http(config)) {
         MainActivity screen = activity.launchActivity(null);

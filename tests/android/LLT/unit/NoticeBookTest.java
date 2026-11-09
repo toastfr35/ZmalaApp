@@ -4,6 +4,7 @@
 // @plan Deliver duplicate push/native rings, cancellations, answers and expiry, serialize and reload
 // history, clear counts, prune removed contacts and classify incoming/sent/completed callbacks.
 // Format absent notices, singular/plural missed counts and simultaneous incoming/sent callbacks.
+// Fill 128 records/counts, add a 129th, saturate one peer at 99 misses and reload corrupt storage.
 // @pass A missed call counts once across delivery paths and restart; answered/declined calls do not
 // count, count clearing is retained, and callback badges apply only to the correct pending pair.
 package org.zmala.phone;
@@ -13,6 +14,22 @@ import org.json.*;
 import org.junit.Test;
 
 public class NoticeBookTest {
+  @Test public void historyAndCountsRemainBoundedAcrossReload() throws Exception {
+    NoticeBook book = new NoticeBook("");
+    for (int i = 0; i < 129; i++) { book.ring("call" + i, "peer" + i, 1000); book.finish("call" + i, true); }
+    JSONObject saved = new JSONObject(book.toString());
+    assertEquals(128, saved.getJSONArray("events").length());
+    assertEquals("call1", saved.getJSONArray("events").getJSONObject(0).getString("id"));
+    assertEquals(128, saved.getJSONObject("missed").length());
+    book = new NoticeBook(book.toString());
+    assertEquals(1, book.count("peer128"));
+    for (int i = 0; i < 100; i++) { book.ring("extra" + i, "peer128", 1000); book.finish("extra" + i, true); }
+    assertEquals(99, book.count("peer128"));
+    assertEquals(99, new NoticeBook(book.toString()).count("peer128"));
+    assertEquals(0, new NoticeBook("not json").count("peer128"));
+    saved.getJSONArray("events").put(new JSONObject());
+    assertEquals(0, new NoticeBook(saved.toString()).count("peer128"));
+  }
   private static String summary(int count, int callbacks) {
     return ContactNotice.summary(count, callbacks, n -> n + (n == 1 ? " missed call" : " missed calls"),
         "Please call back", "Callback requested");

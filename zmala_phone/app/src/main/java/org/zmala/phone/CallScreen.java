@@ -258,6 +258,7 @@ final class CallScreen extends FrameLayout {
     connectionSlot.setMargins(dp(12), dp(54), dp(12), 0); addView(connectionStatus, connectionSlot);
     connectionStatus.setVisibility(GONE);
     sharePhoto = new Button(context);
+    UiActions.size(sharePhoto);
     sharePhoto.setTextColor(MainActivity.FG); sharePhoto.setBackgroundTintList(ColorStateList.valueOf(MainActivity.PANEL));
     sharePhoto.setOnClickListener(v -> actions.photo());
     LayoutParams photoSlot = new LayoutParams(-2,-2,Gravity.TOP | Gravity.RIGHT);

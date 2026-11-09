@@ -52,6 +52,7 @@ public final class PhoneFixture {
                 .put(
                     new JSONObject()
                         .put("id", "term1")
+                        .put("sip_uri", "sip:term1@127.0.0.1")
                         .put("name", "Living room")
                         .put("photo", "")
                         .put("can_call", true)

@@ -8,6 +8,12 @@ links:
 normative: true
 ref: ''
 references:
+- path: zmala_phone/app/src/main/java/org/zmala/phone/AppUpdates.java
+  type: file
+- path: zmala_phone/app/src/main/java/org/zmala/phone/UiActions.java
+  type: file
+- path: tests/android/LLT/device/ActionSizeTest.java
+  type: file
 - path: zmala_phone/app/src/main/java/org/zmala/phone/CallGlyph.java
   type: file
 - path: zmala_phone/app/src/main/java/org/zmala/phone/PortraitLoader.java
@@ -66,8 +72,15 @@ reviewed: null
 scope: Experimental
 text: |
   The interface shall present labeled controls for setup, permitted outgoing contacts and current
-  call actions, use at least 60 dp action heights, dark terminal background and panels, green call/answer
+  call actions, dark terminal background and panels, green call/answer
   and red decline/end controls, and preserve readable layout within system insets.
+
+  Every app-owned button or tappable text action shall have an actual clickable view at least
+  60 dp high. This includes notification settings/retry/help, Updates, photo Share/Cancel/Stop
+  and positive, negative and neutral actions in app-created dialogs. A larger non-clickable
+  parent shall not satisfy the minimum. Text actions shall grow or wrap when needed at enlarged
+  font sizes, without clipping the label or overlapping another action. Android-owned permission,
+  document-picker and package-installer screens remain outside the app's layout control.
 
   Welcome instructions shall offer scanning a supplied setup QR code or opening a setup PDF or QR
   image without requiring the phone user to access server administration.
@@ -75,12 +88,13 @@ text: |
   Contacts shall use compact horizontal rows with a rounded portrait beside the name.
 
   Portrait downloads shall use a bounded background queue separate from configuration and callback
-  requests. Decoded static portraits shall be reused within a bounded memory cache, isolated by
+  requests, with one worker and at most 40 waiting jobs; overload shall not block the UI.
+  Decoded static portraits shall be reused within an 8 MiB allocation-size memory cache, isolated by
   enrollment and cleared when the screen owner is destroyed. Portraits in memory shall be applied
   immediately during view binding, with background work queued only for cache misses. Replacing or
   leaving the contact view shall discard obsolete queued work and results.
 
-  Name buttons shall include a smaller status label: Available on green for recently confirmed
+  Contact cards shall include a smaller status label: Available on green for recently confirmed
   activity, Try calling on blue for unconfirmed push eligibility, and Offline on red
   otherwise. Each row shall be one tappable card opening a dedicated contact page, including
   offline cards. The page shall offer Call, Request callback or Cancel request, and missed-call
@@ -110,7 +124,8 @@ text: |
   a video tap. Horizontal, cancelled or multi-finger gestures shall not change volume. Hardware volume
   keys during calls shall control the call stream, and the previous system stream policy shall resume afterward.
 
-  Controls shall start hidden, appear on a video tap, and hide after five seconds without interaction.
+  Call icon controls shall start hidden, appear on a video tap, and use a default hide timeout of
+  five seconds without interaction, subject to the accessibility overrides below.
   Short visible labels shall accompany revealed icons; the first call shall briefly explain tap and
   volume-swipe gestures. Microphone/listening mute shall remain visibly indicated while controls hide.
 
@@ -135,7 +150,9 @@ text: |
   Its full circular perimeter shall remain visible throughout the pulse in both orientations.
 verification: Exercise labels and actions on an Android display, check minimum touch size and absence of in-app reset actions,
   measure each clickable action itself (including notification footer, photo-sharing and dialog actions)
-  at normal and enlarged font sizes against the 60 dp minimum,
+  at 100% and 200% font scale in English and French against the 60 dp minimum. Test all three
+  interactive notification-footer states (notifications off, missing server support, registration retry)
+  and all photo-action labels. Check rendered bounds and full labels, not only configured minima;
   check that setup describes using a supplied QR without administrator access, and visually inspect
   screenshots for clipping.
   Verify all three row colours and status labels, one interactive target per row, offline detail

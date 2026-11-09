@@ -14,8 +14,14 @@ text: For a connected call to an App or Terminal contact with server photo-shari
   current-call endpoint. It shall bound source data to 20 MiB/64 million pixels and normalize orientation
   and size to a metadata-free JPEG of at most 1600 pixels per side and 2 MiB. The same photo shall appear
   with preserved proportions above the local and received video; call audio and controls shall remain
-  active. Stop or cancel shall clear local sharing immediately and request server deletion; a periodically
-  renewed lease shall limit stale remote display. Sharing shall survive Activity recreation, stop when
+  active. Stop or cancel shall clear local sharing immediately and request server deletion.
+  The sender shall schedule renewal three seconds after a successful upload or renewal response.
+  The receiver shall schedule its next poll one second after the previous result and limit local
+  display to the lesser of the server's remaining lease and 12 seconds, measured from request start
+  with a monotonic clock. Expiry shall clear the photo independently of network completion.
+  Photo HTTP shall reject redirects, use six-second connect and fifteen-second read timeouts,
+  and bound status responses to 8 KiB and JPEG responses to 2 MiB.
+  Sharing shall survive Activity recreation, stop when
   the call changes/ends, reject late picker/upload results and report upload/renewal failure. Choosing
   no image shall leave the call unchanged. The receiving app shall poll authenticated current-call status
   and bounded JPEG bytes, preserve proportions, hide sender-only actions, and clear on stop, call change
@@ -45,7 +51,9 @@ references:
   type: file
 verification: Unit-test result generation fencing across stop and new calls. Decode bounded synthetic
   images on Android and reject malformed/oversized input. Use the call HLT to exercise picker-result delivery,
-  authenticated upload/renewal/stop, Activity recreation and retained native call/audio state. Qualify
+  authenticated upload/renewal/stop, Activity recreation and retained native call/audio state. Exercise
+  lease expiry with a blocked request, delayed replies, stale revisions and a replaced call; assert
+  that no expired response restores a photo and that receiving never renews or deletes the sender's share. Qualify
   the system picker and real speech/video separately on hardware.
 
 # Receiving uses the same authenticated dialog and retains native call surfaces.
