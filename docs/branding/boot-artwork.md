@@ -1,5 +1,10 @@
 # Terminal boot artwork
 
+This retained artwork note concerns ZmalaTerminal, not the Android app. Its owning
+[terminal artwork document](https://github.com/toastfr35/ZmalaTerminal/blob/main/docs/branding/boot-artwork.md)
+and assets are maintained in that repository. Android artwork usage is described
+in the [logo pack guide](README.md).
+
 The shared terminal asset `zmala_terminal/common/assets/boot-family.png` retains
 the family word cloud and uses the approved A1 mark at its centre.
 
