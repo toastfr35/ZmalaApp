@@ -7,9 +7,12 @@ scope: Experimental
 level: 2
 area: Application updates
 header: Verified idle installation policy
-text: The app shall check the fixed public ZmalaCall latest-release endpoint on opening no more than every
-  six hours and schedule a daily network-constrained check. It shall offer only newer stable releases
-  with one exact ZmalaPhone.apk asset, bounded size and SHA256 digest. Downloads shall use trusted HTTPS
+text: The app shall check the fixed public https://api.github.com/repos/toastfr35/ZmalaApp/releases/latest
+  endpoint on opening no more than every six hours and schedule a daily network-constrained metadata check.
+  A user-initiated Check now shall bypass the six-hour interval while still respecting call/install exclusion.
+  Background checks shall fetch metadata only; APK work shall start only with a visible idle app.
+  It shall offer only newer stable releases with one exact ZmalaPhone.apk asset from the corresponding
+  toastfr35/ZmalaApp release, a positive size no greater than 512 MiB and a SHA256 digest. Downloads shall use trusted HTTPS
   GitHub asset origins without enrollment credentials, remain private, and be verified for length, digest,
   application ID, increasing version code, matching release version, non-debuggable flag and the existing
   signing certificate before submission to Android signature validation. Automatic updates shall default
@@ -26,6 +29,8 @@ text: The app shall check the fixed public ZmalaCall latest-release endpoint on 
   A selected update shall show bounded download percentage and checking/preparing/installing stages.
   Automatic-update idle time shall reset on user interaction and exclude a person's contact-action page.
 verification: Unit-test metadata, origins, archive identity and signature matching, and call/install exclusion. Check the thirty-second automatic eligibility boundary and loss of eligibility after interaction, permission/network changes or clock reset.
+  Verify the ZmalaApp metadata and release asset origins, automatic six-hour throttling, explicit Check now
+  and metadata-only background work.
   Inject HTTP responses to verify fixed-origin metadata, per-hop APK redirect checks and redirect limits,
   ten-second connection/read timeouts, a one-MiB metadata limit and connection/stream cleanup on failures.
   Exercise the actual update UI and an Android PackageInstaller self-update with a same-key higher-version

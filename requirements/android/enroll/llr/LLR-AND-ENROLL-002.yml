@@ -46,6 +46,12 @@ text: |
   version 1 and match the enrolled device ID, App type and call authentication key.
   String, Boolean and fractional versions shall be rejected without coercion.
 
+  Camera and file setup shall display the validated server origin for explicit confirmation
+  before fetching configuration. HTTP setup shall warn that LAN setup and calls are unencrypted.
+  Enrollment shall be saved only after a matching configuration has been validated.
+  Camera scanning and the visible configuration refresh shall require camera and
+  microphone permission, plus local-network permission on Android API 37 or later.
+
   Configuration shall contain at most 40 contact objects with unique valid account
   IDs, nonblank string names of at most 80 characters, SIP URIs matching each ID
   and the configured domain, and Boolean can_call/can_receive permissions.
@@ -59,7 +65,11 @@ text: |
   redirects. Account portraits shall be downloaded only from same-origin paths,
   with PNG/JPEG bounded to 2 MiB and GIF to 16 MiB.
 
-  Only enrollment shall be stored in application-private no-backup storage.
+  Enrollment credentials shall be stored in application-private no-backup storage;
+  fetched SIP and TURN credentials shall remain in memory. Private missed-call and callback
+  history, cached caller names, notification state and general app/update preferences may
+  persist for their respective features. Secure calling may materialize Android-derived
+  trust roots in private no-backup storage. Android backup shall remain disabled.
   Android Clear storage / Clear app data shall remove enrollment and terminate
   the process; reopening shall return to QR setup.
 
@@ -81,8 +91,10 @@ verification: |
   mismatched SIP addresses, non-Boolean permissions and non-string/unsafe photos.
   Accept valid boundary names, permissions and portrait formats. Exercise response
   limits and redirects without forwarding credentials. Test persistence and Android
-  app-data clearing and inspect manifest and no-backup policy. Launch Forget setup,
-  cancel once, then confirm and verify enrollment is removed while app preferences
+  app-data clearing and inspect manifest and no-backup policy. Verify that confirmation
+  cancellation or rejected configuration does not save enrollment, HTTP confirmation warns
+  about unencrypted calls, and permission checks include local-network access from API 37.
+  Launch Forget setup, cancel once, then confirm and verify enrollment is removed while app preferences
   persist. Decode QR images and a multi-page PDF containing download and App QR
   codes. Reject invalid and oversized input and check stream closure, scratch
   cleanup and cancellation.
