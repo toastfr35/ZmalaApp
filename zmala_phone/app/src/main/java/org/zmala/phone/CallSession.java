@@ -9,7 +9,7 @@ import org.json.JSONObject;
 import org.linphone.core.Call;
 
 // @llr LLR-AND-CALL-002, LLR-AND-CALL-006
-/** Application-owned live call, never an Activity or a permanent idle SIP connection. Main thread only. */
+/** Owns the SIP core on the main thread across screen recreation and foreground service calls. */
 final class CallSession {
   @android.annotation.SuppressLint("StaticFieldLeak") // Application context; the screen is weakly held.
   private static CallSession instance;
@@ -175,7 +175,7 @@ final class CallSession {
     context.stopService(new Intent(context, CallService.class));
   }
 
-  // Active background calls still observe revocation. There is no poll or SIP core while idle/closed.
+  // Once the screen detaches, only an ongoing call needs configuration and revocation checks.
   private void poll() {
     if (visible || !ongoing()) return;
     if (fetching) { main.postDelayed(poll, 1000); return; }

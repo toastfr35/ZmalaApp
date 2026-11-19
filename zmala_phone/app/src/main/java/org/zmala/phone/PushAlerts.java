@@ -11,8 +11,6 @@ import androidx.core.app.Person;
 import com.google.firebase.FirebaseApp;
 import com.google.firebase.messaging.FirebaseMessaging;
 import java.io.File;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
 import java.util.*;
 import java.util.concurrent.*;
 import java.util.function.Consumer;
@@ -28,11 +26,7 @@ public final class PushAlerts {
 
   static Enrollment enrollment(Context context) {
     try {
-      return new Enrollment(
-          new String(
-              Files.readAllBytes(
-                  new File(context.getNoBackupFilesDir(), "enrollment.json").toPath()),
-              StandardCharsets.UTF_8));
+      return new SetupCoordinator(new File(context.getNoBackupFilesDir(), "enrollment.json")).load();
     } catch (Exception e) {
       return null;
     }

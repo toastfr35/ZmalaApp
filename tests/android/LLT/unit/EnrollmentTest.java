@@ -7,6 +7,7 @@
 // Serve redirects from a local HTTP fixture and verify no credentials reach the redirect target.
 // Download a GIF larger than the static cap, reject the same oversized JPEG and invalid photo paths.
 // Test setup storage round trips and removal, invalidation of old work and SDK-specific denied permission policy.
+// Replace an enrollment while retaining a reference to the prior file and verify both complete records.
 // @pass All parser, identity, transport and redirect boundary assertions pass.
 package org.zmala.phone;
 
@@ -15,11 +16,33 @@ import static org.junit.Assert.*;
 import java.io.*;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.concurrent.atomic.AtomicBoolean;
 import org.json.JSONObject;
 import org.junit.Test;
 
 public class EnrollmentTest {
+  @Test public void replacingEnrollmentPublishesACompleteNewFile() throws Exception {
+    Path directory = Files.createTempDirectory("zmala-enroll");
+    Path file = directory.resolve("enrollment.json"), previous = directory.resolve("previous");
+    SetupCoordinator setup = new SetupCoordinator(file.toFile());
+    try {
+      Enrollment original = new Enrollment(qr().toString());
+      setup.remember(original);
+      // Keep the inode a reader already opened, independently of platform file sharing modes.
+      Files.createLink(previous, file);
+      Enrollment replacement = new Enrollment(qr().put("server_url", "http://localhost:8081").toString());
+      setup.remember(replacement);
+      assertEquals(replacement.serialized(), setup.load().serialized());
+      assertEquals(original.serialized(), Files.readString(previous));
+    } finally {
+      setup.forget();
+      Files.deleteIfExists(previous);
+      Files.delete(directory);
+    }
+  }
+
   @Test public void setupOwnerFencesWorkAndPersistsEnrollment() throws Exception {
     File file = File.createTempFile("zmala-setup", ".json");
     try {

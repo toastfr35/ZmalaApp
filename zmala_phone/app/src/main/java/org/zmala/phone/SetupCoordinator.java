@@ -4,10 +4,13 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
+import java.nio.file.StandardOpenOption;
 import java.util.function.Predicate;
 
 // @llr LLR-AND-ENROLL-002, LLR-AND-CALL-006
-/** Screen-work identity and enrollment storage, independent of Android views. */
+/** Invalidates work from an old screen and publishes complete enrollments to background readers. */
 final class SetupCoordinator {
   private final File file;
   private int generation;
@@ -22,10 +25,21 @@ final class SetupCoordinator {
   Enrollment load() throws Exception {
     return new Enrollment(new String(Files.readAllBytes(file.toPath()), StandardCharsets.UTF_8));
   }
-  void remember(Enrollment enrollment) throws Exception {
-    Files.write(file.toPath(), enrollment.serialized().getBytes(StandardCharsets.UTF_8));
+  private Path stagingFile() {
+    return file.toPath().resolveSibling(file.getName() + ".new");
+  }
+  void remember(Enrollment enrollment) throws IOException {
+    Path staging = stagingFile();
+    try {
+      Files.write(staging, enrollment.serialized().getBytes(StandardCharsets.UTF_8),
+          StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING, StandardOpenOption.WRITE, StandardOpenOption.SYNC);
+      Files.move(staging, file.toPath(), StandardCopyOption.ATOMIC_MOVE, StandardCopyOption.REPLACE_EXISTING);
+    } finally {
+      Files.deleteIfExists(staging);
+    }
   }
   void forget() throws IOException {
+    Files.deleteIfExists(stagingFile());
     Files.deleteIfExists(file.toPath());
     invalidate();
   }

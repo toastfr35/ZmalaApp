@@ -5,6 +5,7 @@
 // configuration server. Inspect ordinary notification text/category/timeout, duplicate/dismissed
 // delivery, cancellation, stale snapshots, deadline changes and enrollment isolation. Tap the alert to the permitted
 // contact page without dialing. No Google transport or personal enrollment is used.
+// Fill the saved active set with 32 dismissed requests and verify only the next new request appears.
 // Inspect the actual initialized WorkManager configuration for a job range excluding update job 9037.
 // Signed background delivery needs a validated network (the production WorkManager constraint);
 // report that case skipped if the emulator has no validated network, rather than weakening it.
@@ -28,8 +29,43 @@ public class CallbackAlertsTest {
     assertTrue(config.getMinJobSchedulerId() > 9037);
     assertTrue(config.getMaxJobSchedulerId() >= config.getMinJobSchedulerId() + 1000);
   }
-  @Rule public GrantPermissionRule permission=GrantPermissionRule.grant(android.Manifest.permission.POST_NOTIFICATIONS);
+  @Rule public GrantPermissionRule permissions = GrantPermissionRule.grant(screenPermissions());
+  private static String[] screenPermissions() {
+    int sdk = android.os.Build.VERSION.SDK_INT;
+    List<String> permissions = new ArrayList<>(Arrays.asList(SetupCoordinator.permissions(sdk)));
+    if (sdk >= 33) permissions.add(android.Manifest.permission.POST_NOTIFICATIONS);
+    return permissions.toArray(new String[0]);
+  }
   static final String ID="12345678-0000-0000-0000-000000000000";
+  @Test public void dismissedRemindersFreeSpaceForNewRequests() throws Exception {
+    Context context = PhoneFixture.INSTRUMENTATION.getTargetContext();
+    NotificationManager manager = context.getSystemService(NotificationManager.class);
+    SharedPreferences prefs = context.getSharedPreferences("callback-notices", 0);
+    manager.cancelAll();
+    try {
+      PushFixture.enroll(context, 5060);
+      Enrollment enrollment = PushAlerts.enrollment(context);
+      long expires = System.currentTimeMillis() + 600000;
+      JSONArray requests = new JSONArray();
+      CallbackBook book = new CallbackBook("{}");
+      String last = null;
+      for (int i = 0; i < 33; i++) {
+        last = UUID.randomUUID().toString();
+        requests.put(new JSONObject().put("id", last).put("from", "term1").put("to", "phone1")
+            .put("status", "pending").put("expires_at", java.time.Instant.ofEpochMilli(expires).toString()));
+        if (i < 32) book.posted(new CallbackBook.Entry(last, "term1", "Living room", expires));
+      }
+      prefs.edit().putString("identity", CallbackAlerts.identity(enrollment)).putString("book", book.toString()).commit();
+      JSONObject config = PhoneFixture.config(5060).put("callbacks_enabled", true).put("callbacks", requests);
+      CallbackAlerts.synchronize(context, enrollment, config, CallbackAlerts.beginRefresh());
+      PhoneFixture.waitFor(() -> alerts(context).length == 1);
+      assertEquals("callback:" + last, alerts(context)[0].getTag());
+    } finally {
+      CallbackAlerts.forget(context);
+      new java.io.File(context.getNoBackupFilesDir(), "enrollment.json").delete();
+    }
+  }
+
   static android.service.notification.StatusBarNotification[] alerts(Context c) {
     return Arrays.stream(c.getSystemService(NotificationManager.class).getActiveNotifications())
         .filter(n->n.getTag()!=null&&n.getTag().startsWith("callback:")).toArray(android.service.notification.StatusBarNotification[]::new);
@@ -65,13 +101,14 @@ public class CallbackAlertsTest {
       PushAlerts.receive(c,message);PhoneFixture.waitFor(()->http.configurationRequests>=2);
       assertEquals(1,alerts(c).length);
       manager.cancel("callback:"+ID,2);
+      PhoneFixture.waitFor(() -> alerts(c).length == 0);
       CallbackAlerts.synchronize(c,enrollment,config,CallbackAlerts.beginRefresh());
       assertEquals(0,alerts(c).length); // Dismissal is not permission to repeat the alert.
 
       c.getSharedPreferences("callback-notices",0).edit().clear().commit();
       long old=CallbackAlerts.beginRefresh(),current=CallbackAlerts.beginRefresh();
       CallbackAlerts.synchronize(c,enrollment,config,old);assertEquals(0,alerts(c).length);
-      CallbackAlerts.synchronize(c,enrollment,config,current);assertEquals(1,alerts(c).length);
+      CallbackAlerts.synchronize(c,enrollment,config,current);PhoneFixture.waitFor(() -> alerts(c).length == 1);
       Instrumentation.ActivityMonitor monitor=PhoneFixture.INSTRUMENTATION.addMonitor(MainActivity.class.getName(),null,false);
       try {
         alerts(c)[0].getNotification().contentIntent.send();
@@ -94,9 +131,9 @@ public class CallbackAlertsTest {
       config.put("callbacks",new JSONArray().put(pending));
       CallbackAlerts.synchronize(c,enrollment,config,CallbackAlerts.beginRefresh());assertEquals(0,alerts(c).length);
       Enrollment replacement=PushAlerts.enrollment(c);
-      CallbackAlerts.synchronize(c,replacement,config,CallbackAlerts.beginRefresh());assertEquals(1,alerts(c).length);
+      CallbackAlerts.synchronize(c,replacement,config,CallbackAlerts.beginRefresh());PhoneFixture.waitFor(() -> alerts(c).length == 1);
       CallbackAlerts.revoked(c,enrollment);assertEquals(1,alerts(c).length);
-      CallbackAlerts.revoked(c,replacement);assertEquals(0,alerts(c).length);
+      CallbackAlerts.revoked(c,replacement);PhoneFixture.waitFor(() -> alerts(c).length == 0);
     } finally {
       androidx.work.WorkManager.getInstance(c).cancelAllWork();manager.cancelAll();
       new java.io.File(c.getNoBackupFilesDir(),"enrollment.json").delete();

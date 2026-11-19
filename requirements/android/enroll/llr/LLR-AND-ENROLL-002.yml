@@ -89,6 +89,7 @@ text: |
   Imported text shall use the camera QR validation and explicit server confirmation.
   Cancellation shall preserve setup.
 verification: |
+  Verify that replacing an enrollment preserves a complete record for concurrent readers.
   Test malformed/mismatched QR and configuration, strict version types and port
   boundaries. Reject malformed contacts, duplicate IDs, oversized/blank names,
   mismatched SIP addresses, non-Boolean permissions and non-string/unsafe photos.

@@ -29,6 +29,9 @@ text: The app shall check the fixed public https://api.github.com/repos/toastfr3
   A selected update shall show bounded download percentage and checking/preparing/installing stages.
   Automatic-update idle time shall reset on user interaction and exclude a person's contact-action page.
 verification: Unit-test metadata, origins, archive identity and signature matching, and call/install exclusion. Check the thirty-second automatic eligibility boundary and loss of eligibility after interaction, permission/network changes or clock reset.
+  Interrupt the updater after recording an uncommitted installer session and verify that calls become eligible again.
+  Resume the activity during staging and verify that the live session remains writable.
+  Check that recovery removes an abandoned APK and preserves the active worker's file.
   Verify the ZmalaApp metadata and release asset origins, automatic six-hour throttling, explicit Check now
   and metadata-only background work.
   Inject HTTP responses to verify fixed-origin metadata, per-hop APK redirect checks and redirect limits,

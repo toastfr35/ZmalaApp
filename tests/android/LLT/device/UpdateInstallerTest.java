@@ -3,6 +3,8 @@
 // @environment native-sdk
 // @plan Use Android PackageManager on the installed app APK, instrumentation APK and corrupt bytes
 // through the production verification method. Deliver a forged unmatched installer-result ID.
+// Reopen recovery during live staging and after an interruption between recording the session and commit.
+// Check that only an active download retains its private APK file.
 // @pass Reinstall/downgrade, wrong package and unreadable archive are rejected before session commit;
 // an unrelated callback cannot acquire or release the installation gate.
 package org.zmala.phone;
@@ -17,6 +19,63 @@ import org.json.*;
 import org.junit.Test;
 
 public class UpdateInstallerTest {
+  @Test public void resumingDuringStagingPreservesTheWorkersSession() throws Exception {
+    Context context = PhoneFixture.INSTRUMENTATION.getTargetContext();
+    AppUpdates updater = AppUpdates.get(context);
+    PackageInstaller installer = context.getPackageManager().getPackageInstaller();
+    int id = installer.createSession(new PackageInstaller.SessionParams(PackageInstaller.SessionParams.MODE_FULL_INSTALL));
+    Field downloading = AppUpdates.class.getDeclaredField("downloading");
+    downloading.setAccessible(true);
+    File apk = new File(context.getCacheDir(), "zmalaphone-update.apk");
+    try {
+      Files.write(apk.toPath(), new byte[]{1});
+      downloading.setBoolean(updater, true);
+      updater.recoverSession();
+      assertTrue(apk.isFile());
+      try (PackageInstaller.Session staging = installer.openSession(id);
+           java.io.OutputStream out = staging.openWrite("base.apk", 0, 1)) {
+        out.write(0);
+        staging.fsync(out);
+      }
+    } finally {
+      downloading.setBoolean(updater, false);
+      Files.deleteIfExists(apk.toPath());
+      if (installer.getSessionInfo(id) != null) installer.abandonSession(id);
+    }
+  }
+
+  @Test public void recoveryDropsAbandonedDownload() throws Exception {
+    Context context = PhoneFixture.INSTRUMENTATION.getTargetContext();
+    AppUpdates updater = AppUpdates.get(context);
+    File apk = new File(context.getCacheDir(), "zmalaphone-update.apk");
+    try {
+      Files.write(apk.toPath(), new byte[]{1});
+      updater.recoverSession();
+      assertFalse(apk.exists());
+    } finally {
+      Files.deleteIfExists(apk.toPath());
+    }
+  }
+
+  @Test public void interruptedCommitDoesNotKeepCallsBlocked() throws Exception {
+    Context context = PhoneFixture.INSTRUMENTATION.getTargetContext();
+    AppUpdates updater = AppUpdates.get(context);
+    PackageInstaller installer = context.getPackageManager().getPackageInstaller();
+    int id = installer.createSession(new PackageInstaller.SessionParams(PackageInstaller.SessionParams.MODE_FULL_INSTALL));
+    SharedPreferences prefs = context.getSharedPreferences("updates", 0);
+    try {
+      prefs.edit().putInt("session", id).commit();
+      updater.recoverSession();
+      assertFalse(UpdateGate.INSTANCE.installing());
+      assertFalse(prefs.contains("session"));
+      PhoneFixture.waitFor(() -> installer.getSessionInfo(id) == null);
+    } finally {
+      if (installer.getSessionInfo(id) != null) installer.abandonSession(id);
+      prefs.edit().remove("session").commit();
+      UpdateGate.INSTANCE.restoreInstall(false);
+    }
+  }
+
   @Test public void archivesAndCallbacksFailClosed() throws Exception {
     Context c = PhoneFixture.INSTRUMENTATION.getTargetContext();
     AppUpdates updater = AppUpdates.get(c);

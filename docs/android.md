@@ -46,6 +46,9 @@ Install the supplied signed release APK, tap **Scan setup QR**, allow camera and
 access on Android 17), scan the code and confirm the displayed server address.
 
 An HTTP enrollment explicitly warns that LAN setup and calls are unencrypted.
+After validation, the app writes the new enrollment to a private staging file
+and atomically replaces the saved record. A push arriving during replacement
+can read a complete enrollment throughout the change.
 
 To set up directly from an email attachment, save the setup PDF or a QR image on
 the phone and tap **Open QR file**. Choose the file and confirm the displayed server
@@ -201,7 +204,10 @@ Debug builds cannot update to the differently signed public release.
 commit. Ringing and calls prevent commit and cancel transfer/staging at chunk
 boundaries; backgrounding cancels it too. Once committed, installation briefly
 refuses new calls until Android reports completion/cancellation. Session identity
-is persisted for recovery; stale staging sessions and failed downloads are removed.
+is persisted before commit. On restart, Android's sealed session identifies
+a submitted installation. An interrupted, uncommitted session is discarded and
+calls can proceed. Recovery also removes the partial APK left by an interrupted
+download. Resuming the screen during live staging preserves the worker's file and session.
 A completed update retains enrollment. Neither update prompts nor version labels
 appear over a call.
 
@@ -535,7 +541,8 @@ request deadline. Tapping waits for fresh contact permissions and opens the cont
 without dialing; an active call retains its screen. Seen IDs survive user dismissal
 and restart. Reconciliation clears cancelled, completed, expired or forbidden
 requests, silently updates changed names/deadlines and limits state to 512 seen IDs
-and 32 active reminders per enrollment identity. Disabled channels do not consume
+and 32 active reminders per enrollment identity. Dismissing or tapping a
+reminder frees its slot at the next refresh. Disabled channels do not consume
 unseen requests. Call and callback channels share a push destination; either may
 remain enabled independently.
 

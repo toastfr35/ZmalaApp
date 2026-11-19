@@ -61,8 +61,7 @@ final class CallbackAlerts {
     Enrollment enrollment = PushAlerts.enrollment(context);
     PushMessage message = enrollment == null ? null : PushMessage.verify(enrollment,data,System.currentTimeMillis());
     if (message == null || !"callback".equals(message.event)) return;
-    // FCM's callback lifetime is too short for network work on an unowned thread.
-    // Expedited WorkManager work retains the process, with a regular-job fallback.
+    // WorkManager owns the refresh after the FCM handler returns and can reschedule it.
     beginRefresh();
     OneTimeWorkRequest work = new OneTimeWorkRequest.Builder(CallbackWorker.class)
         .setInputData(new Data.Builder().putString("message",new JSONObject(data).toString()).build())
@@ -78,22 +77,22 @@ final class CallbackAlerts {
     NotificationManager manager = context.getSystemService(NotificationManager.class);
     SharedPreferences prefs = context.getSharedPreferences("callback-notices",0);
     String identity = identity(enrollment);
-    if (!identity.equals(prefs.getString("identity",""))) {
-      for (android.service.notification.StatusBarNotification item : manager.getActiveNotifications())
-        if (item.getTag() != null && item.getTag().startsWith(PREFIX)) manager.cancel(item.getTag(),2);
-      prefs.edit().clear().putString("identity",identity).apply();
+    boolean sameEnrollment = identity.equals(prefs.getString("identity",""));
+    Map<String, Notification> displayed = new java.util.HashMap<>();
+    for (android.service.notification.StatusBarNotification item : manager.getActiveNotifications()) {
+      String tag = item.getTag();
+      if (item.getId() != 2 || tag == null || !tag.startsWith(PREFIX)) continue;
+      if (sameEnrollment) displayed.put(tag.substring(PREFIX.length()), item.getNotification());
+      else manager.cancel(tag, 2);
     }
-    CallbackBook book = new CallbackBook(prefs.getString("book","{}"));
+    CallbackBook book = new CallbackBook(sameEnrollment ? prefs.getString("book","{}") : "{}");
     long now = System.currentTimeMillis();
-    CallbackBook.Plan plan = book.reconcile(config,now);
+    CallbackBook.Plan plan = book.reconcile(config, now, displayed.keySet());
     for (String id : plan.removed()) manager.cancel(PREFIX+id,2);
     channel(context);
     if (allowed(context)) {
-      Map<String,Notification> existing = new java.util.HashMap<>();
-      for (android.service.notification.StatusBarNotification item : manager.getActiveNotifications())
-        if (item.getTag() != null) existing.put(item.getTag(),item.getNotification());
       for (CallbackBook.Entry entry : plan.retained()) {
-        Notification notice = existing.get(PREFIX+entry.id());
+        Notification notice = displayed.get(entry.id());
         String body = context.getString(R.string.callback_notification_body,entry.name());
         if (notice != null && (notice.extras.getLong("callback_deadline") != entry.expires()
             || !body.contentEquals(notice.extras.getCharSequence(Notification.EXTRA_TEXT,""))))
@@ -101,7 +100,7 @@ final class CallbackAlerts {
       }
       for (CallbackBook.Entry entry : plan.fresh()) if (show(context,entry,now,now)) book.posted(entry);
     }
-    prefs.edit().putString("book",book.toString()).apply();
+    prefs.edit().putString("identity", identity).putString("book",book.toString()).apply();
   }
 
   private static boolean show(Context context, CallbackBook.Entry entry, long now, long when) {
