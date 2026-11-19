@@ -25,6 +25,7 @@ text: |
   push registration may remain while either channel is enabled. Callback refresh
   jobs shall use a scheduler ID range separate from the periodic update job.
 verification: |
+  Fill the active reminder limit, dismiss reminders and verify a new request can appear while dismissed IDs stay seen.
   Test incoming/sent/forbidden/expired records, bounded persistence, duplicate and
   dismissed requests, cancellation and enrollment isolation. On Android inspect
   the ordinary notification category, requester name, tap destination and timeout;

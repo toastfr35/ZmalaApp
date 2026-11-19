@@ -335,9 +335,9 @@ final class AppUpdates {
         || !UpdateGate.INSTANCE.beginInstall(System.currentTimeMillis())) {
       installer.abandonSession(id); requested = userRequested; return;
     }
-    prefs.edit().putInt("session", id).putString("install_version", release.version)
-        .putBoolean("manual_install", userRequested).commit();
     try (PackageInstaller.Session session = installer.openSession(id)) {
+      if (!prefs.edit().putInt("session", id).putString("install_version", release.version)
+          .putBoolean("manual_install", userRequested).commit()) throw new IOException("Could not record install session");
       Intent result = new Intent(context, UpdateResult.class).setAction("org.zmala.phone.UPDATE_RESULT");
       int flags = PendingIntent.FLAG_UPDATE_CURRENT | (Build.VERSION.SDK_INT >= 31 ? PendingIntent.FLAG_MUTABLE : 0);
       session.commit(PendingIntent.getBroadcast(context, id, result, flags).getIntentSender());
@@ -369,13 +369,16 @@ final class AppUpdates {
     status = text; idleSince = SystemClock.elapsedRealtime(); render();
   }
 
-  private void recoverSession() {
+  void recoverSession() {
+    // Resuming a screen can overlap the worker's open staging session.
+    if (downloading) return;
     int id = prefs.getInt("session", -1);
     PackageInstaller.SessionInfo session = id < 0 ? null : installer.getSessionInfo(id);
-    if (session == null) prefs.edit().remove("session").apply();
-    UpdateGate.INSTANCE.restoreInstall(session != null);
-    // Clean unfinished staging sessions left by process death. Never abandon a committed install.
+    // The preferences write precedes commit. Android seals the session when commit is called.
+    boolean submitted = session != null && session.isSealed();
+    if (!submitted && id >= 0) prefs.edit().remove("session").remove("install_version").remove("manual_install").apply();
+    UpdateGate.INSTANCE.restoreInstall(submitted);
     for (PackageInstaller.SessionInfo other : installer.getMySessions())
-      if (other.getSessionId() != id) installer.abandonSession(other.getSessionId());
+      if (!other.isSealed()) installer.abandonSession(other.getSessionId());
   }
 }

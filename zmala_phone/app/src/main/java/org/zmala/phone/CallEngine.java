@@ -162,8 +162,7 @@ public final class CallEngine {
           }
         });
     core.start();
-    // The core starts after Activity.onResume, so the SDK lifecycle observer misses it.
-    // A visible screen starts the core; CallService may retain it for an active call.
+    // Configuration can arrive after the foreground lifecycle event. Set the new core's mode explicitly.
     core.enterForeground();
     JSONObject sip = config.getJSONObject("sip");
     Address identity =

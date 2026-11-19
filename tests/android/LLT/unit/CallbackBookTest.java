@@ -10,6 +10,7 @@ package org.zmala.phone;
 
 import static org.junit.Assert.*;
 import java.time.Instant;
+import java.util.Set;
 import org.json.*;
 import org.junit.Test;
 
@@ -30,36 +31,40 @@ public class CallbackBookTest {
     JSONObject c=config(new JSONArray().put(incoming).put(sent).put(request(3).put("status","completed"))
         .put(request(4).put("expires_at",Instant.ofEpochMilli(NOW-1).toString())).put(new JSONObject()));
     CallbackBook book=new CallbackBook("{}");
-    CallbackBook.Plan plan=book.reconcile(c,NOW);
+    CallbackBook.Plan plan=book.reconcile(c,NOW,Set.of());
     assertEquals(1,plan.fresh().size());assertEquals("Living room",plan.fresh().get(0).name());
-    assertEquals(1,book.reconcile(c,NOW).fresh().size()); // No delivery recorded while channel/permission prevents posting.
+    assertEquals(1,book.reconcile(c,NOW,Set.of()).fresh().size()); // No delivery recorded while channel/permission prevents posting.
     book.posted(plan.fresh().get(0));book=new CallbackBook(book.toString());
-    assertTrue(book.reconcile(c,NOW).fresh().isEmpty()); // User dismissal does not reset seen state.
-    assertEquals(1,book.reconcile(c,NOW).retained().size());
+    assertEquals(1,book.reconcile(c,NOW,Set.of(id(1))).retained().size());
+    assertTrue(book.reconcile(c,NOW,Set.of()).fresh().isEmpty()); // User dismissal does not reset seen state.
     incoming.put("expires_at",Instant.ofEpochMilli(NOW+7200000).toString());
-    assertTrue(book.reconcile(c,NOW+3600001).fresh().isEmpty());
+    assertTrue(book.reconcile(c,NOW+3600001,Set.of()).fresh().isEmpty());
     incoming.put("status","cancelled");
-    assertEquals(java.util.List.of(id(1)),book.reconcile(c,NOW).removed());
-    assertTrue(book.reconcile(c,NOW).fresh().isEmpty());
+    assertEquals(java.util.List.of(id(1)),book.reconcile(c,NOW,Set.of(id(1))).removed());
+    assertTrue(book.reconcile(c,NOW,Set.of()).fresh().isEmpty());
     incoming.put("status","pending");
     c.getJSONArray("contacts").getJSONObject(0).put("can_receive",false);
-    assertTrue(new CallbackBook("{}").reconcile(c,NOW).fresh().isEmpty());
+    assertTrue(new CallbackBook("{}").reconcile(c,NOW,Set.of()).fresh().isEmpty());
     c.put("callbacks_enabled",false);
-    assertTrue(new CallbackBook("{}").reconcile(c,NOW).fresh().isEmpty());
+    assertTrue(new CallbackBook("{}").reconcile(c,NOW,Set.of()).fresh().isEmpty());
   }
   @Test public void stateAndStorageAreBounded() throws Exception {
     JSONArray many=new JSONArray();for(int n=0;n<400;n++)many.put(request(n));
-    CallbackBook book=new CallbackBook("{}");CallbackBook.Plan plan=book.reconcile(config(many),NOW);
-    assertEquals(32,plan.fresh().size());for(var entry:plan.fresh())book.posted(entry);
-    assertTrue(book.reconcile(config(many),NOW).fresh().isEmpty());
+    CallbackBook book=new CallbackBook("{}");CallbackBook.Plan plan=book.reconcile(config(many),NOW,Set.of());
+    Set<String> displayed = new java.util.HashSet<>();
+    assertEquals(32,plan.fresh().size());
+    for(var entry:plan.fresh()) { book.posted(entry); displayed.add(entry.id()); }
+    assertTrue(book.reconcile(config(many),NOW,displayed).fresh().isEmpty());
+    displayed.remove(id(0));
+    assertEquals(id(32),book.reconcile(config(many),NOW,displayed).fresh().get(0).id());
     for(int n=400;n<1000;n++) {
-      book.reconcile(config(new JSONArray()),NOW);
-      var entry=book.reconcile(config(new JSONArray().put(request(n))),NOW).fresh().get(0);book.posted(entry);
+      book.reconcile(config(new JSONArray()),NOW,Set.of());
+      var entry=book.reconcile(config(new JSONArray().put(request(n))),NOW,Set.of()).fresh().get(0);book.posted(entry);
     }
     JSONObject saved=new JSONObject(book.toString());assertEquals(512,saved.getJSONObject("seen").length());
     assertEquals(1,saved.getJSONObject("active").length());
-    assertEquals(1,new CallbackBook("invalid").reconcile(config(new JSONArray().put(request(1))),NOW).fresh().size());
-    assertEquals(1,book.reconcile(config(new JSONArray()),NOW).removed().size());
+    assertEquals(1,new CallbackBook("invalid").reconcile(config(new JSONArray().put(request(1))),NOW,Set.of()).fresh().size());
+    assertEquals(1,book.reconcile(config(new JSONArray()),NOW,Set.of()).removed().size());
     assertEquals(0,new JSONObject(book.toString()).getJSONObject("active").length());
   }
 }

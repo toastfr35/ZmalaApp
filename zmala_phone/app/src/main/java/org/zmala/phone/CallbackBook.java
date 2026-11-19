@@ -5,7 +5,7 @@ import java.util.*;
 import org.json.*;
 
 // @llr LLR-AND-HISTORY-003
-/** Bounded notification history; dismissed requests stay seen until their deadline. */
+/** Dismissed requests leave the active set but stay in the bounded delivery history. */
 final class CallbackBook {
   record Entry(String id, String peer, String name, long expires) {}
   record Plan(List<Entry> fresh, List<String> removed, List<Entry> retained) {}
@@ -19,7 +19,7 @@ final class CallbackBook {
     } catch (Exception ignored) { seen = new JSONObject(); active = new JSONObject(); }
   }
 
-  Plan reconcile(JSONObject configuration, long now) {
+  Plan reconcile(JSONObject configuration, long now, Set<String> displayed) {
     Map<String, Entry> valid = new LinkedHashMap<>();
     Map<String, JSONObject> contacts = new HashMap<>();
     JSONArray directory = configuration.optJSONArray("contacts");
@@ -42,8 +42,18 @@ final class CallbackBook {
           valid.put(id, new Entry(id, peer, contact.optString("name", peer), expires));
       } catch (Exception ignored) { /* A malformed record cannot create an alert. */ }
     List<String> removed = new ArrayList<>(), expired = new ArrayList<>();
-    active.keys().forEachRemaining(id -> { if (!valid.containsKey(id)) removed.add(id); });
-    for (String id : removed) active.remove(id);
+    // Include recently posted IDs even if Android has not yet exposed them in its snapshot.
+    Set<String> tracked = new LinkedHashSet<>(displayed);
+    active.keys().forEachRemaining(tracked::add);
+    active = new JSONObject();
+    for (String id : tracked) {
+      Entry entry = valid.get(id);
+      if (entry == null) removed.add(id);
+      else if (displayed.contains(id)) {
+        if (active.length() < 32) posted(entry);
+        else removed.add(id);
+      }
+    }
     // Settings may extend a pending deadline. Retain its seen state across that change.
     for (Entry entry : valid.values()) if (seen.has(entry.id())) try { seen.put(entry.id(),entry.expires()); }
       catch (JSONException error) { throw new IllegalArgumentException(error); }
@@ -53,7 +63,7 @@ final class CallbackBook {
     List<Entry> retained = new ArrayList<>();
     for (Entry entry : valid.values()) if (active.has(entry.id())) retained.add(entry);
     for (Entry entry : valid.values())
-      if (!seen.has(entry.id()) && fresh.size() + active.length() < 32) fresh.add(entry);
+      if (!seen.has(entry.id()) && !active.has(entry.id()) && fresh.size() + active.length() < 32) fresh.add(entry);
     return new Plan(fresh, removed, retained);
   }
 
@@ -63,7 +73,7 @@ final class CallbackBook {
         String oldest = null;
         for (Iterator<String> keys = seen.keys(); keys.hasNext();) {
           String key = keys.next();
-          if (oldest == null || seen.optLong(key) < seen.optLong(oldest)) oldest = key;
+          if (!active.has(key) && (oldest == null || seen.optLong(key) < seen.optLong(oldest))) oldest = key;
         }
         if (oldest != null) seen.remove(oldest);
       }
