@@ -5,8 +5,6 @@ import android.content.*;
 import android.net.Uri;
 import androidx.core.app.NotificationCompat;
 import androidx.core.app.NotificationManagerCompat;
-import java.nio.charset.StandardCharsets;
-import java.security.MessageDigest;
 import java.util.Map;
 import androidx.work.*;
 import org.json.JSONObject;
@@ -33,19 +31,9 @@ final class CallbackAlerts {
         && (channel == null || channel.getImportance() >= NotificationManager.IMPORTANCE_DEFAULT);
   }
 
-  static String identity(Enrollment enrollment) {
-    try {
-      byte[] digest = MessageDigest.getInstance("SHA-256").digest(
-          (enrollment.server + ":" + enrollment.deviceId + ":" + enrollment.token).getBytes(StandardCharsets.UTF_8));
-      StringBuilder value = new StringBuilder();
-      for (byte b : digest) value.append(String.format(java.util.Locale.ROOT,"%02x",b & 255));
-      return value.toString();
-    } catch (Exception error) { throw new IllegalStateException(error); }
-  }
-
   static synchronized void revoked(Context context, Enrollment enrollment) {
     Enrollment current = PushAlerts.enrollment(context);
-    if (current == null || !identity(current).equals(identity(enrollment))) return;
+    if (current == null || !current.storageKey.equals(enrollment.storageKey)) return;
     forget(context);
   }
 
@@ -68,15 +56,15 @@ final class CallbackAlerts {
         .setConstraints(new Constraints.Builder().setRequiredNetworkType(NetworkType.CONNECTED).build())
         .setExpedited(OutOfQuotaPolicy.RUN_AS_NON_EXPEDITED_WORK_REQUEST)
         .setBackoffCriteria(BackoffPolicy.LINEAR,10,java.util.concurrent.TimeUnit.SECONDS).build();
-    WorkManager.getInstance(context).enqueueUniqueWork("callback-refresh:"+identity(enrollment),ExistingWorkPolicy.REPLACE,work);
+    WorkManager.getInstance(context).enqueueUniqueWork("callback-refresh:"+enrollment.storageKey,ExistingWorkPolicy.REPLACE,work);
   }
 
   static synchronized void synchronize(Context context, Enrollment enrollment, JSONObject config, long ticket) {
     Enrollment current = PushAlerts.enrollment(context);
-    if (ticket != revision || current == null || !identity(current).equals(identity(enrollment))) return;
+    if (ticket != revision || current == null || !current.storageKey.equals(enrollment.storageKey)) return;
     NotificationManager manager = context.getSystemService(NotificationManager.class);
     SharedPreferences prefs = context.getSharedPreferences("callback-notices",0);
-    String identity = identity(enrollment);
+    String identity = enrollment.storageKey;
     boolean sameEnrollment = identity.equals(prefs.getString("identity",""));
     Map<String, Notification> displayed = new java.util.HashMap<>();
     for (android.service.notification.StatusBarNotification item : manager.getActiveNotifications()) {

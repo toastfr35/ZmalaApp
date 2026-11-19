@@ -292,13 +292,19 @@ passwords into Linphone’s configuration or a call-history database.
 most forty queued jobs. A new contact view clears obsolete queued work; leaving the
 view invalidates its tickets, so an old in-flight image cannot update a newer screen.
 Configuration, presence and callback requests retain their own executor and cannot
-be delayed behind image downloads. Missing or discarded images keep the logo placeholder.
+be delayed behind image downloads.
 
 `PortraitLoader` retains an 8 MiB LRU cache of decoded static bitmaps, sampled to
-at most 256 pixels per side. Immutable photo paths are reused across directory
-refreshes; changing enrollment clears the cache. View tickets reject obsolete
-results before they reach the cache or a view. Disposal clears memory and stops
-queued work; no portrait disk cache is introduced.
+at most 256 pixels per side. Once the current directory identifies a contact with a
+portrait, a separate local worker can restore its last good thumbnail from the
+app's private cache, even while another download is waiting. An unchanged photo
+path needs no network request. A changed path keeps the previous picture visible
+until the new image decodes. A failed update can be retried on the next bind.
+The logo appears when the server lists no portrait or no usable thumbnail is
+available. Up to 64 thumbnails are kept across launches, keyed by enrollment
+and contact. The app starts reading saved thumbnails while it waits for the initial
+directory so they can bind on the first draw. Forget setup clears them, and Android
+can reclaim the cache under storage pressure.
 
 Animated server portraits use the authenticated GIF route with a 16 MiB encoded
 response cap; PNG/JPEG retain the 2 MiB cap. BitmapFactory displays a sampled static

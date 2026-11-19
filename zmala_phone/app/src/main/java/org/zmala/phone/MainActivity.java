@@ -43,7 +43,7 @@ public final class MainActivity extends Activity implements CallSession.Observer
       RED = Color.rgb(183, 47, 63);
   private final Handler main = new Handler(Looper.getMainLooper());
   private final ExecutorService network = Executors.newSingleThreadExecutor();
-  private final PortraitLoader portraits = new PortraitLoader();
+  private PortraitLoader portraits;
   private CallSession session;
   private CallEngine engine;
   private Enrollment enrollment;
@@ -92,6 +92,7 @@ public final class MainActivity extends Activity implements CallSession.Observer
   @Override
   public void onCreate(Bundle state) {
     super.onCreate(state);
+    portraits = new PortraitLoader(new File(getCacheDir(), "portraits"), ServerApi::photo);
     setup = new SetupCoordinator(new File(getNoBackupFilesDir(), "enrollment.json"));
     session = CallSession.get(this); engine = session.engine;
     config = session.configuration;
@@ -306,6 +307,7 @@ public final class MainActivity extends Activity implements CallSession.Observer
       showError(getString(R.string.forget_setup_error));
       return;
     }
+    portraits.forget();
     enrollment = null;
     config = null;
     selectedContact = null;
@@ -494,8 +496,10 @@ public final class MainActivity extends Activity implements CallSession.Observer
       page.addView(button(getString(R.string.scan_qr), GREEN, this::scan));
       page.addView(button(getString(R.string.open_qr_file), PANEL, this::openQrFile));
       page.addView(label(getString(R.string.qr_file_hint), 16, MUTED));
-    } else if (config == null) page.addView(button(getString(R.string.retry_connection), GREEN, () -> refresh(true)));
-    else {
+    } else if (config == null) {
+      if (setup.fetching()) portraits.warm(enrollment, portraitTicket);
+      page.addView(button(getString(R.string.retry_connection), GREEN, () -> refresh(true)));
+    } else {
       ScrollView scroll = new ScrollView(this);
       scroll.setFillViewport(true);
       LinearLayout contacts = new LinearLayout(this);
@@ -523,7 +527,7 @@ public final class MainActivity extends Activity implements CallSession.Observer
               () -> { selectedContact = contact.optString("id"); directory(); });
           LinearLayout.LayoutParams margins = new LinearLayout.LayoutParams(-1, -2);
           margins.setMargins(0, dp(4), 0, dp(4)); contacts.addView(card, margins);
-          loadPortrait(card.portrait, contact.optString("photo"), portraitTicket);
+          portraits.load(card.portrait, enrollment, contact.optString("id"), contact.optString("photo"), portraitTicket);
         }
       if (count == 0)
         contacts.addView(
@@ -582,10 +586,6 @@ public final class MainActivity extends Activity implements CallSession.Observer
     try { startActivity(settings); } catch (Exception error) {
       showError(getString(R.string.notification_settings_help));
     }
-  }
-
-  private void loadPortrait(ImageView photo, String path, long ticket) {
-    portraits.load(photo, enrollment, path, ticket);
   }
 
   // @llr LLR-AND-CALL-002, LLR-AND-UI-002
@@ -658,7 +658,7 @@ public final class MainActivity extends Activity implements CallSession.Observer
       IncomingCallScreen incoming = new IncomingCallScreen(this, name,
           () -> { if (session.prepare()) { silence(); displayedCall = null; acquireAudio(); engine.answer(); } }, engine::hangup);
       setContentView(incoming);
-      loadPortrait(incoming.portrait, photo, portraits.begin());
+      portraits.load(incoming.portrait, enrollment, user, photo, portraits.begin());
       if (ringtone == null) {
         ringtone =
             RingtoneManager.getRingtone(
@@ -790,7 +790,8 @@ public final class MainActivity extends Activity implements CallSession.Observer
         () -> { try { if (session.prepare()) engine.dial(contact); } catch (Exception error) { showError(getString(R.string.start_call_failed)); } },
         () -> { if ((callbacks & 2) != 0) cancelCallback(contact); else requestCallback(contact); },
         () -> { CallNotices.clear(this, contact.optString("id")); directory(); });
-    setContentView(detail); loadPortrait(detail.portrait, contact.optString("photo"), ticket);
+    setContentView(detail);
+    portraits.load(detail.portrait, enrollment, contact.optString("id"), contact.optString("photo"), ticket);
   }
 
   // Android 9–12 fallback; newer phones use the predictive-back callback registered in onCreate.
