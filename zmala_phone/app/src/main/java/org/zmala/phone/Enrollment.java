@@ -14,6 +14,7 @@ import org.json.JSONObject;
 public final class Enrollment {
   public final URI server;
   public final String deviceId, token;
+  final String storageKey;
   private final String qr;
 
   public Enrollment(String text) throws Exception {
@@ -37,6 +38,11 @@ public final class Enrollment {
     if (!deviceId.matches("ZP-[a-fA-F0-9-]{36}") || !token.matches("[A-Za-z0-9_-]{24,128}"))
       throw new IllegalArgumentException("Invalid app enrollment credentials.");
     server = uri.resolve("/");
+    byte[] digest = MessageDigest.getInstance("SHA-256").digest(
+        (server + ":" + deviceId + ":" + token).getBytes(StandardCharsets.UTF_8));
+    StringBuilder key = new StringBuilder(2 * digest.length);
+    for (byte b : digest) key.append(Character.forDigit((b & 255) >>> 4, 16)).append(Character.forDigit(b & 15, 16));
+    storageKey = key.toString();
     qr = text;
   }
 

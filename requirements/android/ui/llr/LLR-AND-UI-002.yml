@@ -18,6 +18,8 @@ references:
   type: file
 - path: zmala_phone/app/src/main/java/org/zmala/phone/PortraitLoader.java
   type: file
+- path: zmala_phone/app/src/main/java/org/zmala/phone/PortraitStore.java
+  type: file
 - path: tests/android/LLT/device/PortraitLoaderTest.java
   type: file
 - path: zmala_phone/app/src/main/java/org/zmala/phone/MainActivity.java
@@ -94,6 +96,15 @@ text: |
   immediately during view binding, with background work queued only for cache misses. Replacing or
   leaving the contact view shall discard obsolete queued work and results.
 
+  For contacts with a portrait in the current directory, the app shall restore the last
+  successfully decoded thumbnail across launches from a private cache keyed by enrollment and
+  contact. The cache shall retain up to 64 thumbnails of at most 256 pixels per side.
+  An unchanged photo path shall need no download. When the path changes, the old thumbnail
+  shall remain visible until the replacement decodes successfully. A pending download shall
+  not delay local thumbnail reads. Startup shall begin reading saved thumbnails while retrieving
+  the initial directory so those in memory can bind on the first draw. Forget setup shall clear
+  the saved thumbnails.
+
   Contact cards shall include a smaller status label: Available on green for recently confirmed
   activity, Try calling on blue for unconfirmed push eligibility, and Offline on red
   otherwise. Each row shall be one tappable card opening a dedicated contact page, including
@@ -168,6 +179,10 @@ verification: Exercise labels and actions on an Android display, check minimum t
   Block a portrait download while replacing the contact view; assert obsolete work/results are
   discarded, cached portraits bind immediately, current work completes, overload remains bounded and
   closing invalidates outstanding tickets.
+  Reopen the loader with a saved thumbnail, block a changed revision and then return invalid
+  image data. Verify the previous image survives both the failed refresh and another launch.
+  Supply a valid replacement, reopen with downloads unavailable and verify the updated pixels
+  and request count. Verify that forgetting setup clears the saved thumbnails.
 
   Test answered-but-no-frame progress, decoder re-arming, stale callbacks and cleanup.
 

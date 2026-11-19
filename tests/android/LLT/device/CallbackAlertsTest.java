@@ -55,7 +55,7 @@ public class CallbackAlertsTest {
             .put("status", "pending").put("expires_at", java.time.Instant.ofEpochMilli(expires).toString()));
         if (i < 32) book.posted(new CallbackBook.Entry(last, "term1", "Living room", expires));
       }
-      prefs.edit().putString("identity", CallbackAlerts.identity(enrollment)).putString("book", book.toString()).commit();
+      prefs.edit().putString("identity", enrollment.storageKey).putString("book", book.toString()).commit();
       JSONObject config = PhoneFixture.config(5060).put("callbacks_enabled", true).put("callbacks", requests);
       CallbackAlerts.synchronize(context, enrollment, config, CallbackAlerts.beginRefresh());
       PhoneFixture.waitFor(() -> alerts(context).length == 1);
