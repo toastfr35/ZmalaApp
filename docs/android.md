@@ -206,8 +206,8 @@ boundaries; backgrounding cancels it too. Once committed, installation briefly
 refuses new calls until Android reports completion/cancellation. Session identity
 is persisted before commit. On restart, Android's sealed session identifies
 a submitted installation. An interrupted, uncommitted session is discarded and
-calls can proceed. Resuming the screen during live staging leaves the worker's
-session available to complete its write.
+calls can proceed. Recovery also removes the partial APK left by an interrupted
+download. Resuming the screen during live staging preserves the worker's file and session.
 A completed update retains enrollment. Neither update prompts nor version labels
 appear over a call.
 

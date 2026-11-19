@@ -30,6 +30,7 @@ final class AppUpdates {
   private final Handler main = new Handler(Looper.getMainLooper());
   private final java.util.concurrent.ExecutorService worker = Executors.newSingleThreadExecutor();
   private final PackageInstaller installer;
+  private final File downloadedApk;
   private WeakReference<MainActivity> screen = new WeakReference<>(null);
   private volatile boolean foreground, downloading;
   private boolean checking, requested, manual;
@@ -49,6 +50,7 @@ final class AppUpdates {
     status = context.getString(R.string.check_newer);
     prefs = context.getSharedPreferences("updates", 0);
     installer = context.getPackageManager().getPackageInstaller();
+    downloadedApk = new File(context.getCacheDir(), "zmalaphone-update.apk");
     recoverSession();
     String cached = prefs.getString("release", "");
     try { if (!cached.isEmpty()) available = UpdatePolicy.parse(cached, version()); }
@@ -245,11 +247,10 @@ final class AppUpdates {
     boolean userRequested = manual;
     status = context.getString(R.string.download_zero); downloadPercent = 0; render();
     worker.execute(() -> {
-      File apk = new File(context.getCacheDir(), "zmalaphone-update.apk");
       try {
         if (!continueDownload()) throw new InterruptedException();
         HttpURLConnection connection = UpdateHttp.connect(new URI(release.url), true);
-        try (InputStream in = connection.getInputStream(); OutputStream out = new FileOutputStream(apk)) {
+        try (InputStream in = connection.getInputStream(); OutputStream out = new FileOutputStream(downloadedApk)) {
           MessageDigest hash = MessageDigest.getInstance("SHA-256");
           byte[] buffer = new byte[65536]; long size = 0, start = SystemClock.elapsedRealtime(), reportedAt = start; int count;
           while ((count = in.read(buffer)) != -1) {
@@ -267,17 +268,17 @@ final class AppUpdates {
             throw new IOException("Download verification failed");
         } finally { connection.disconnect(); }
         reportProgress(context.getString(R.string.checking_update), -1);
-        verify(apk, release);
+        verify(downloadedApk, release);
         if (!continueDownload()) throw new InterruptedException();
         // Stage without committing; incoming calls still take priority while bytes are copied.
         reportProgress(context.getString(R.string.preparing_install), -1);
         PackageInstaller.SessionParams params = new PackageInstaller.SessionParams(PackageInstaller.SessionParams.MODE_FULL_INSTALL);
-        params.setAppPackageName(context.getPackageName()); params.setSize(apk.length());
+        params.setAppPackageName(context.getPackageName()); params.setSize(downloadedApk.length());
         if (Build.VERSION.SDK_INT >= 31) params.setRequireUserAction(userRequested
             ? PackageInstaller.SessionParams.USER_ACTION_REQUIRED : PackageInstaller.SessionParams.USER_ACTION_NOT_REQUIRED);
         int id = installer.createSession(params);
         try (PackageInstaller.Session session = installer.openSession(id)) {
-          try (InputStream in = new FileInputStream(apk); OutputStream out = session.openWrite("base.apk", 0, apk.length())) {
+          try (InputStream in = new FileInputStream(downloadedApk); OutputStream out = session.openWrite("base.apk", 0, downloadedApk.length())) {
             byte[] bytes = new byte[65536]; int count;
             while ((count = in.read(bytes)) != -1) {
               if (!continueDownload()) throw new InterruptedException();
@@ -286,10 +287,10 @@ final class AppUpdates {
             session.fsync(out);
           }
         } catch (Exception error) { installer.abandonSession(id); throw error; }
-        Files.deleteIfExists(apk.toPath());
+        discardDownload();
         main.post(() -> commit(id, release, userRequested));
       } catch (Exception error) {
-        try { Files.deleteIfExists(apk.toPath()); } catch (Exception ignored) {}
+        discardDownload();
         boolean paused = error instanceof InterruptedException;
         main.post(() -> {
           downloading = false;
@@ -372,6 +373,7 @@ final class AppUpdates {
   void recoverSession() {
     // Resuming a screen can overlap the worker's open staging session.
     if (downloading) return;
+    discardDownload();
     int id = prefs.getInt("session", -1);
     PackageInstaller.SessionInfo session = id < 0 ? null : installer.getSessionInfo(id);
     // The preferences write precedes commit. Android seals the session when commit is called.
@@ -380,5 +382,10 @@ final class AppUpdates {
     UpdateGate.INSTANCE.restoreInstall(submitted);
     for (PackageInstaller.SessionInfo other : installer.getMySessions())
       if (!other.isSealed()) installer.abandonSession(other.getSessionId());
+  }
+
+  private void discardDownload() {
+    try { Files.deleteIfExists(downloadedApk.toPath()); }
+    catch (IOException error) { android.util.Log.w("ZmalaUpdates", "Could not remove the cached APK", error); }
   }
 }
